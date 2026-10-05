@@ -1,0 +1,2242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sheet Pembukuan — PT Global Nararya Multitrading</title>
+
+<!-- [PWA] Supaya bisa di-"Add to Home Screen" / "Install app" di Android & iOS -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3560">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Android Chrome baca manifest.json di atas untuk nama/ikon/warna.
+     iOS Safari TIDAK baca manifest.json untuk ini -- butuh tag khusus berikut: -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GNM">
+<style>
+  :root{
+    --navy:#1a3560;
+    --navy-light:#264a82;
+    --gold:#d3a828;
+    --bg:#e9e6de;
+    --paper:#ffffff;
+    --line:#d9d7d0;
+    --line-strong:#c9c9c9;
+    --muted:#6b6b6b;
+    --edit-bg:#fff6de;
+    --good:#1f7a4d;
+    --good-bg:#e7f5ec;
+    --bad:#a4262c;
+    --bad-bg:#fbeaea;
+    --warn-bg:#fff3d6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:'Segoe UI',ui-sans-serif,system-ui,sans-serif;
+    color:#1c1c1c;
+  }
+
+  /* ---- Header ---- */
+  .topbar{
+    background:var(--navy);
+    color:#fff;
+    padding:18px 28px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .topbar .brand{display:flex;flex-direction:column;gap:2px;}
+  .topbar .brand .name{font-size:16px;font-weight:700;letter-spacing:.2px;}
+  .topbar .brand .sub{font-size:12px;color:#c9d4e8;}
+  .topbar .spacer{flex:1;}
+  .sync-status{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12px;
+    color:#c9d4e8;
+    background:rgba(255,255,255,.08);
+    padding:6px 12px;
+    border-radius:20px;
+  }
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:#5cc98a;}
+  .sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite;}
+  .sync-dot.error{background:#e05a5a;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .topbar .gold-tag{
+    background:var(--gold);color:var(--navy);
+    font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;
+  }
+
+  .wrap{max-width:1400px;margin:0 auto;padding:22px 24px 70px;}
+
+  .note-banner{
+    background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold);
+    border-radius:8px;padding:12px 16px;font-size:12.5px;color:#444;
+    margin-bottom:18px;line-height:1.55;
+  }
+  .note-banner strong{color:var(--navy);}
+  .note-banner.error{border-left-color:var(--bad);background:var(--bad-bg);color:#7a1c20;}
+
+  /* ---- Setup screen ---- */
+  .setup-screen{
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:32px;max-width:640px;margin:40px auto;
+  }
+  .setup-screen h2{color:var(--navy);margin-top:0;}
+  .setup-screen ol{padding-left:20px;line-height:1.8;font-size:13.5px;}
+  .setup-screen .field{margin:16px 0;}
+  .setup-screen label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+  .setup-screen input{width:100%;padding:9px 11px;border:1px solid var(--line-strong);border-radius:6px;font-size:13px;}
+
+  /* ---- Summary cards ---- */
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+  .card .label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+  .card .value{font-size:21px;font-weight:700;color:var(--navy);}
+  .card.warn .value{color:#b8860b;}
+  .card.good .value{color:var(--good);}
+
+  /* ---- Toolbar ---- */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .toolbar .search{flex:1;min-width:180px;max-width:320px;padding:9px 12px;border:1px solid var(--line-strong);border-radius:7px;font-size:13px;}
+  .period-picker{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line-strong);border-radius:7px;padding:6px 8px 6px 12px;}
+  .period-picker label{font-size:11.5px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+  .period-picker select{border:1px solid var(--line-strong);border-radius:6px;padding:7px 10px;font-size:13px;font-weight:600;color:#1c1c1c;background:#fff;min-width:130px;}
+  .period-count{font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  .btn{border:none;border-radius:7px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-light);}
+  .btn-gold{background:var(--gold);color:var(--navy);}
+  .btn-gold:hover{background:#c39a24;}
+  .btn-ghost{background:#fff;color:var(--navy);border:1px solid var(--line-strong);}
+  .btn-ghost:hover{background:#f4f2ec;}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:6px;}
+  .btn-icon{padding:6px 9px;font-size:13px;}
+
+  /* ---- Table ---- */
+  .sheet-panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .table-scroll{overflow-x:auto;}
+  table.sheet{width:100%;border-collapse:collapse;font-size:12.5px;min-width:2050px;}
+  table.sheet thead th{
+    background:#f4f2ec;color:var(--navy);text-align:left;padding:10px 12px;
+    border-bottom:2px solid var(--line-strong);font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.3px;white-space:nowrap;position:sticky;top:0;
+  }
+  table.sheet tbody td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+  table.sheet tbody tr:hover{background:#fbfaf7;}
+  table.sheet tbody tr.row-lunas{background:var(--good-bg);}
+  table.sheet tbody tr.row-lunas:hover{background:#dcf0e3;}
+  .num{text-align:right;font-variant-numeric:tabular-nums;}
+  .muted{color:var(--muted);}
+  .empty-state{padding:60px 20px;text-align:center;color:var(--muted);}
+  .empty-state .big{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:6px;}
+
+  .status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+  .status-select{
+    border:none;border-radius:20px;padding:4px 22px 4px 10px;font-size:11px;font-weight:700;
+    cursor:pointer;appearance:none;-webkit-appearance:none;
+    background-repeat:no-repeat;background-position:right 7px center;background-size:9px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  }
+  .status-select-lunas{background-color:var(--good-bg);color:var(--good);}
+  .status-select-belum{background-color:var(--warn-bg);color:#8a6512;}
+  .status-lunas{background:var(--good-bg);color:var(--good);}
+  .status-belum{background:var(--warn-bg);color:#8a6512;}
+
+  .actions-cell{display:flex;gap:6px;}
+
+  .doc-cell{display:flex;align-items:center;gap:4px;}
+  .doc-upload-group{display:flex;gap:4px;}
+  .doc-upload-btn, .doc-link-btn{
+    border:1px dashed var(--line-strong);background:#fff;color:var(--muted);
+    border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;white-space:nowrap;
+  }
+  .doc-upload-btn:hover{border-color:var(--gold);color:var(--navy);background:#fffbea;}
+  .doc-link-btn:hover{border-color:var(--navy);color:var(--navy);background:#f4f2ec;}
+  .doc-view-btn{
+    background:var(--good-bg);color:var(--good);border:1px solid #bfe3cb;border-radius:6px;
+    padding:5px 9px;font-size:11px;font-weight:600;cursor:pointer;max-width:120px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .doc-view-btn:hover{background:#dcf0e3;}
+  .doc-view-btn.is-link{background:#eaf1fb;color:#26507a;border-color:#c3d8f0;}
+  .doc-view-btn.is-link:hover{background:#dbe9fb;}
+  .doc-remove-btn{
+    background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+    line-height:1;padding:2px 4px;border-radius:4px;
+  }
+  .doc-remove-btn:hover{background:var(--warn-bg);color:#a33;}
+  .dropdown{position:relative;display:inline-block;}
+  .dropdown-menu{
+    display:none;position:fixed;background:#fff;
+    border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.14);
+    min-width:190px;z-index:1000;overflow:hidden;
+  }
+  .dropdown-menu.open{display:block;}
+  .dropdown-menu button{display:block;width:100%;text-align:left;padding:9px 12px;background:none;border:none;font-size:12.5px;cursor:pointer;color:#222;}
+  .dropdown-menu button:hover{background:#f4f2ec;}
+  .dropdown-menu .menu-label{padding:7px 12px 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
+
+  /* ---- Modal ---- */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,25,35,.5);z-index:100;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:12px;width:100%;max-width:760px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  .modal-head{background:var(--navy);color:#fff;padding:16px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;}
+  .modal-head h2{margin:0;font-size:16px;font-weight:700;}
+  .modal-head .close-x{margin-left:auto;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:.8;}
+  .modal-head .close-x:hover{opacity:1;}
+  .modal-body{padding:22px 24px;}
+  .form-section-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  .form-section-title:first-child{margin-top:0;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+  .field label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:4px;}
+  .field input, .field select{width:100%;padding:8px 10px;border:1px solid var(--line-strong);border-radius:6px;font-size:13px;font-family:inherit;}
+  .field input:focus, .field select:focus{outline:none;border-color:var(--gold);background:var(--edit-bg);}
+  .checkline{display:flex;align-items:center;gap:8px;margin-top:2px;}
+  .checkline label{font-size:12.5px;color:#333;cursor:pointer;}
+
+  .field input.computed{background:#f4f2ec;color:var(--navy);font-weight:700;}
+  .field .field-hint{font-size:10.5px;color:var(--muted);margin-top:3px;}
+
+  .parts-panel{margin-top:10px;background:#f9f8f4;border:1px solid var(--line-strong);border-radius:8px;padding:12px 14px;}
+  .parts-panel .parts-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .parts-panel .parts-head strong{color:var(--navy);font-size:13px;flex:1;}
+  .parts-row{display:grid;grid-template-columns:34px 0.85fr 1fr 1.1fr 1fr 32px;gap:8px;align-items:center;margin-bottom:8px;}
+  .parts-row .badge{
+    width:28px;height:28px;border-radius:6px;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+  }
+  .parts-row input{padding:7px 9px;border:1px solid var(--line-strong);border-radius:6px;font-size:12.5px;font-family:inherit;width:100%;}
+  .parts-row input:focus{outline:none;border-color:var(--gold);background:var(--edit-bg);}
+  .parts-row .rm-btn{background:none;border:none;color:var(--bad);font-size:16px;cursor:pointer;width:32px;}
+  .parts-row .rm-btn:hover{color:#7a1c20;}
+  .parts-col-labels{display:grid;grid-template-columns:34px 0.85fr 1fr 1.1fr 1fr 32px;gap:8px;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;}
+  .add-part-btn{background:#fff;border:1px dashed var(--line-strong);color:var(--navy);border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+  .add-part-btn:hover{background:#f4f2ec;}
+  .parts-total{margin-top:6px;font-size:12px;color:var(--muted);text-align:right;}
+  .parts-total strong{color:var(--navy);}
+  .dosj-preview{margin-top:8px;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px;}
+  .dosj-preview .lbl{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:3px;}
+  .dosj-preview .v{font-weight:700;color:var(--navy);}
+
+  .gen-dropdown-menu .menu-label:not(:first-child){border-top:1px solid var(--line);margin-top:4px;padding-top:9px;}
+
+  .calc-box{margin-top:16px;background:#f4f2ec;border:1px dashed var(--line-strong);border-radius:8px;padding:12px 16px;font-size:13px;}
+  .calc-row{display:flex;justify-content:space-between;padding:3px 0;}
+  .calc-row.total{font-weight:700;color:var(--navy);border-top:1px solid var(--line-strong);margin-top:6px;padding-top:8px;font-size:14px;}
+  .calc-total-input{
+    width:170px;text-align:right;padding:6px 9px;border:1px solid var(--gold);border-radius:6px;
+    font-size:14px;font-weight:700;color:var(--navy);font-family:inherit;background:#fff;
+  }
+  .calc-total-input:focus{outline:none;background:var(--edit-bg);}
+  .calc-hint{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.4;}
+
+  .modal-foot{padding:16px 24px 22px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line);}
+
+  .po-upload-box{
+    display:flex;align-items:center;gap:14px;background:#fffbea;border:1.5px dashed var(--gold);
+    border-radius:9px;padding:14px 16px;margin-bottom:18px;
+  }
+  .po-upload-icon{font-size:24px;flex-shrink:0;}
+  .po-upload-text{flex:1;display:flex;flex-direction:column;gap:2px;}
+  .po-upload-text strong{font-size:13px;color:var(--navy);}
+  .po-upload-text span{font-size:11.5px;color:var(--muted);line-height:1.4;}
+  .po-upload-status{font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .po-upload-status.busy{color:#8a6512;}
+  .po-upload-status.ok{color:var(--good);}
+  .po-upload-status.err{color:var(--bad);}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--navy);color:#fff;padding:11px 20px;border-radius:8px;font-size:13px;
+    box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;
+    transition:opacity .2s, transform .2s;z-index:200;max-width:80vw;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast.err{background:var(--bad);}
+
+  @media(max-width:720px){
+    .summary{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="name">PT Global Nararya Multitrading</div>
+    <div class="sub">Sheet Pembukuan &amp; Invoice Connector</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="sync-status" id="syncStatus"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">Memuat...</span></div>
+  <span class="gold-tag">GNM · CLOUD SYNC</span>
+</div>
+
+<div class="wrap" id="mainWrap" style="display:none;">
+
+  <div class="note-banner">
+    <strong>Upload PO Client (auto-isi):</strong> klik tombol <strong>"📎 Upload PO Client (auto-isi)"</strong> di toolbar, lalu pilih file <strong>PDF atau gambar (JPG/PNG/foto)</strong> PO dari customer — No. PO, tanggal PO, qty, harga, tujuan, dan nama customer akan otomatis ditebak dan diisi ke form (Nama Produk sengaja tidak diotak-atik, tetap pakai default/isian manual). File gambar dibaca pakai OCR langsung di browser, jadi lebih lambat & kurang akurat dibanding PDF asli — pastikan fotonya jelas & terang. Ini murni bantuan awal (heuristik baca teks), <strong>selalu cek ulang tiap field sebelum disimpan</strong> karena format PO tiap client berbeda-beda dan tidak semua bisa ketebak sempurna — semua field tetap bisa diedit manual seperti biasa.
+    <br><br>
+    <strong>Cara pakai:</strong> isi data invoice + DO sekali di sini lewat tombol "+ Invoice Baru" — otomatis kesimpen ke Google Sheets, jadi kebuka & keupdate juga di device lain (laptop/HP lain) yang akses file ini, selama semuanya connect ke Sheet yang sama. Isi <strong>Nomor Urut / Bulan / Tahun</strong> sekali, No. Invoice &amp; No. DO otomatis ke-generate dan konsisten di semua dokumen. Kalau pengiriman dipecah ke beberapa kendaraan/DO, aktifkan <strong>"Pecah tagihan ini jadi beberapa DO"</strong>. Isi juga bagian <strong>"Purchase Order ke Supplier"</strong> kalau mau generate PO ke supplier — nomornya otomatis disamakan dengan No. INV/DO, tapi <strong>harga di PO diisi manual sendiri</strong> dan sepenuhnya terpisah dari harga di Invoice ke customer; bagian PO ini boleh diisi belakangan, tidak wajib lengkap dulu sebelum data lain disimpan. Buat cetak dokumennya, klik <strong>Buka di Generator</strong> pada baris terkait — field-nya langsung terisi otomatis, tinggal Download DOCX/PDF.
+    <br><br>
+    <strong>Lampiran dokumen (INV Signed / INV Final / PO Supplier / DO / Bukti Payment Pembelian):</strong> di kolom-kolom paling kanan tabel, klik <strong>"＋ Upload"</strong> buat lampirkan file PDF-nya langsung ke baris itu, atau klik <strong>"🔗"</strong> buat tempel link kalau filenya sudah di-upload ke Google Drive/tempat lain. Berhubung satu sel Google Sheets cuma bisa nampung ±50.000 karakter, upload langsung hanya berlaku untuk PDF kecil (di bawah ±35KB) — kebanyakan hasil scan biasanya lebih besar dari itu, jadi buat file besar dianjurkan pakai opsi link. File yang sudah terlampir bisa diklik buat dibuka, atau hapus lewat tombol "×" di sebelahnya.
+    <br><br>
+    <strong>INV Status &amp; PO Status:</strong> dua kolom ini bisa langsung diubah lewat dropdown di tabel, tanpa perlu buka tombol Edit (✎) — <strong>INV Status</strong> (Lunas/Belum Lunas) buat status pelunasan invoice dari customer, <strong>PO Status</strong> (Delivered/Non-Delivered) buat status pengiriman barangnya.
+  </div>
+
+  <div class="summary">
+    <div class="card"><div class="label">Total Invoice</div><div class="value" id="sumCount">0</div></div>
+    <div class="card"><div class="label">Total Nilai Tagihan</div><div class="value" id="sumTotal">Rp0</div></div>
+    <div class="card good"><div class="label">Sudah Lunas</div><div class="value" id="sumLunas">Rp0</div></div>
+    <div class="card warn"><div class="label">Belum Lunas</div><div class="value" id="sumBelum">Rp0</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="period-picker">
+      <label for="monthFilter">Bulan</label>
+      <select id="monthFilter" onchange="onPeriodFilterChange()"></select>
+    </div>
+    <div class="period-picker">
+      <label for="yearFilter">Tahun</label>
+      <select id="yearFilter" onchange="onPeriodFilterChange()"></select>
+    </div>
+    <span class="period-count" id="periodCount"></span>
+    <input type="text" class="search" id="searchBox" placeholder="Cari no. invoice / customer / PO..." oninput="renderTable()">
+    <button class="btn btn-primary" onclick="openModal()">+ Invoice Baru</button>
+    <button class="btn btn-gold" onclick="startPoClientUpload()">📎 Upload PO Client (auto-isi)</button>
+    <button class="btn btn-ghost" id="refreshBtn" onclick="fetchRecords(true)">↻ Refresh</button>
+    <button class="btn btn-ghost" onclick="exportCsv()">⬇ Export Excel (CSV)</button>
+  </div>
+
+  <div class="sheet-panel">
+    <div class="table-scroll">
+      <table class="sheet">
+        <thead>
+          <tr>
+            <th>No. Invoice</th><th>Tanggal</th><th>Customer</th><th>PO / Kontrak</th>
+            <th>DO / Surat Jalan</th>
+            <th>Produk</th><th class="num">Qty</th><th class="num">Total Tagihan</th>
+            <th>Jatuh Tempo</th>
+            <th title="Status pembayaran Invoice dari customer">INV Status</th>
+            <th title="Status pembayaran PO ke supplier">PO Status</th>
+            <th title="Upload PDF Invoice yang sudah ditandatangani">INV Signed</th>
+            <th title="Upload PDF Invoice final (belum/tanpa tanda tangan)">INV Final</th>
+            <th title="Upload PDF Purchase Order ke supplier">PO Supplier</th>
+            <th title="Upload PDF Surat Jalan / Delivery Order">DO (Surat Jalan)</th>
+            <th title="Upload bukti transfer/pembayaran ke supplier">Bukti Payment Pembelian</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="big">Belum ada data invoice</div>
+      <div>Klik "+ Invoice Baru" buat mulai isi pembukuan.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SETUP SCREEN (tampil kalau API belum dikonfigurasi/gagal connect) ============ -->
+<div class="wrap" id="setupWrap" style="display:none;">
+  <div class="setup-screen">
+    <h2>Sambungkan ke Google Sheets</h2>
+    <div class="note-banner error" id="setupError" style="display:none;"></div>
+    <p style="font-size:13px;color:#444;">Dashboard ini belum tersambung ke backend Google Sheets kamu. Masukkan URL Web App dan API Key yang kamu dapat setelah deploy Apps Script (lihat file <code>Code.gs</code> yang dikasih Claude untuk instruksinya).</p>
+    <div class="field">
+      <label>Web App URL</label>
+      <input type="text" id="setupUrl" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input type="text" id="setupKey" placeholder="kata sandi yang kamu isi di Code.gs">
+    </div>
+    <button class="btn btn-primary" onclick="saveConfig()">Sambungkan</button>
+  </div>
+</div>
+
+<!-- ============ MODAL FORM ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">Invoice Baru</h2>
+      <button class="close-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="f_id">
+
+      <div class="po-upload-box" id="poUploadBox">
+        <div class="po-upload-icon">📎</div>
+        <div class="po-upload-text">
+          <strong>Upload PO dari Client (PDF / Foto / JPG / PNG)</strong>
+          <span>No. PO, tanggal, qty, harga, tujuan &amp; nama customer otomatis kebaca dan keisi ke field di bawah — semua tetap bisa diedit sebelum disimpan. File gambar (foto/scan) dibaca pakai OCR, jadi agak lebih lama & kadang kurang akurat dibanding PDF asli.</span>
+        </div>
+        <button type="button" class="btn btn-gold btn-sm" onclick="document.getElementById('poClientFileInput').click()">Pilih File PDF / Gambar</button>
+        <span class="po-upload-status" id="poUploadStatus"></span>
+      </div>
+
+      <div class="form-section-title">Nomor Dokumen (Otomatis)</div>
+      <div class="form-grid">
+        <div class="field"><label>Nomor Urut</label><input type="text" id="f_noUrut" placeholder="5" oninput="onNumberingChange()"></div>
+        <div class="field">
+          <label>Bulan</label>
+          <select id="f_bulanIdx" onchange="onNumberingChange()">
+            <option value="1">Januari (I)</option><option value="2">Februari (II)</option>
+            <option value="3">Maret (III)</option><option value="4">April (IV)</option>
+            <option value="5">Mei (V)</option><option value="6">Juni (VI)</option>
+            <option value="7">Juli (VII)</option><option value="8">Agustus (VIII)</option>
+            <option value="9">September (IX)</option><option value="10">Oktober (X)</option>
+            <option value="11">November (XI)</option><option value="12">Desember (XII)</option>
+          </select>
+        </div>
+        <div class="field"><label>Tahun</label><input type="text" id="f_tahun" placeholder="2026" oninput="onNumberingChange()"></div>
+        <div class="field"><label>No. Faktur Pajak</label><input type="text" id="f_faktur" placeholder="04002600040862750"></div>
+        <div class="field"><label>No. Invoice (otomatis)</label><input type="text" id="f_inv" class="computed" readonly></div>
+        <div class="field"><label>No. DO Dasar (otomatis)</label><input type="text" id="f_doBase" class="computed" readonly>
+          <div class="field-hint">Kalau di-pecah jadi beberapa DO, huruf (A/B/C…) otomatis ditambahkan di belakang nomor ini.</div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Customer &amp; Referensi</div>
+      <div class="form-grid">
+        <div class="field"><label>Tanggal Invoice</label><input type="text" id="f_tgl" placeholder="11 Februari 2026"></div>
+        <div class="field">
+          <label>Syarat Pembayaran / Termin</label>
+          <select id="f_jatuhtempoSelect" onchange="onJatuhTempoChange()"></select>
+          <input type="text" id="f_jatuhtempoManual" placeholder="mis. Tempo 60 Hari Setelah Barang Diterima" style="margin-top:6px;display:none;">
+        </div>
+        <div class="field">
+          <label>Kepada Yth. (Customer)</label>
+          <select id="f_kepadaSelect" onchange="onKepadaSelectChange()"></select>
+          <input type="text" id="f_kepadaManual" placeholder="PT. Nama Customer Baru" style="margin-top:6px;display:none;">
+        </div>
+        <div class="field"><label>PO / Kontrak No. <span class="muted" style="font-weight:400;">(= No. PO Client di DO)</span></label><input type="text" id="f_po" placeholder="PO.B.2026.02.00114"></div>
+        <div class="field"><label>Tanggal PO / Kontrak</label><input type="text" id="f_tglpo" placeholder="7 Februari 2026"></div>
+        <div class="field"><label>Tanggal Pengiriman <span class="muted" style="font-weight:400;">(= Hari/Tgl Pengiriman di DO)</span></label><input type="text" id="f_tglkirim" placeholder="11 Februari 2026 / Rabu, 11 Februari 2026"></div>
+      </div>
+
+      <div class="form-section-title">Barang &amp; Harga</div>
+      <div class="form-grid">
+        <div class="field"><label>Nama Produk</label><input type="text" id="f_produk" placeholder="HSD Bio Solar (Industri) B50" oninput="calcPreview()"></div>
+        <div class="field"><label>Deskripsi</label><input type="text" id="f_deskripsi" placeholder="Spec Migas"></div>
+        <div class="field"><label>Qty Total (Liter)</label><input type="text" id="f_qty" placeholder="21.000" oninput="calcPreview()"></div>
+        <div class="field"><label>Harga / Unit (Rp)</label><input type="text" id="f_harga" placeholder="12.612,61" oninput="onHargaFieldInput()"></div>
+        <div class="field"><label>PPN (%)</label><input type="text" id="f_ppn" value="11" oninput="calcPreview()"></div>
+        <div class="field">
+          <label>PBBKB</label>
+          <div class="checkline">
+            <input type="checkbox" id="f_pbbkbon" checked onchange="calcPreview()">
+            <label for="f_pbbkbon">Tampilkan PBBKB</label>
+            <input type="text" id="f_pbbkb" value="7,5" style="width:70px;margin-left:8px" oninput="calcPreview()">
+            <span class="muted">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-box" id="calcBox">
+        <div class="calc-row"><span>Jumlah (Qty × Harga)</span><span id="calcJumlah1">Rp0</span></div>
+        <div class="calc-row"><span>PBBKB</span><span id="calcPbbkb">Rp0</span></div>
+        <div class="calc-row"><span>PPN</span><span id="calcPpn">Rp0</span></div>
+        <div class="calc-row total"><span>Harga Total / Liter (all-in)</span><input type="text" id="calcPerLiterInput" class="calc-total-input" placeholder="Rp0" oninput="onPerLiterInputTyping()" onchange="onPerLiterInputChange()"></div>
+        <div class="calc-row total"><span>Total Tagihan</span><input type="text" id="calcTotalInput" class="calc-total-input" placeholder="Rp0" oninput="onTotalInputTyping()" onchange="onTotalInputChange()"></div>
+        <div class="calc-hint">Isi <strong>Harga / Unit</strong> di atas buat hitung Total secara otomatis. <strong>Atau</strong>, isi <strong>Harga Total / Liter</strong> (sudah termasuk PPN &amp; PBBKB jika ada) untuk auto-hitung mundur Harga / Unit dasarnya. <strong>Atau</strong>, isi langsung <strong>Total Tagihan</strong> untuk auto-hitung mundur Harga / Unit-nya. Ketiganya saling terhubung — cukup isi salah satu.</div>
+      </div>
+
+      <div class="form-section-title">Data Surat Jalan (DO) — Berlaku untuk semua bagian</div>
+      <div class="form-grid">
+        <div class="field"><label>No PO Supplier <span class="muted">(opsional)</span></label><input type="text" id="f_poSupplier" placeholder="PO.S.2026.02.0089"></div>
+        <div class="field"><label>Lambung Transportasi</label><input type="text" id="f_lambung" placeholder="GNM-01" oninput="renderParts()"></div>
+        <div class="field"><label>Pengisian Solar Ke (Tujuan)</label><input type="text" id="f_tujuan" placeholder="PT. Trans Logistik Perkasa - Cikarang"></div>
+        <div class="field" id="segelSingleWrap"><label>No. Segel <span class="muted">(opsional)</span></label><input type="text" id="f_segel" placeholder="SGL-00123"></div>
+      </div>
+
+      <div class="parts-panel">
+        <div class="parts-head">
+          <input type="checkbox" id="f_splitOn" onchange="onSplitToggle()">
+          <strong>Pecah tagihan ini jadi beberapa DO (multi-kendaraan)</strong>
+        </div>
+
+        <div id="singlePartWrap" class="form-grid">
+          <div class="field"><label>Plat Nomor Kendaraan</label><input type="text" id="f_plat1" placeholder="B 9012 XYZ" oninput="renderPartsPreview()"></div>
+          <div class="field"><label>Nama Driver (Delivered By)</label><input type="text" id="f_driver1" placeholder="Nama driver" oninput="renderPartsPreview()"></div>
+        </div>
+
+        <div id="multiPartWrap" style="display:none;">
+          <div class="parts-col-labels">
+            <span></span><span>Qty (Liter)</span><span>Plat Nomor Kendaraan</span><span>Nama Driver</span><span>No. Segel (opsional)</span><span></span>
+          </div>
+          <div id="partsRows"></div>
+          <button type="button" class="add-part-btn" onclick="addPart()">+ Tambah Bagian</button>
+          <div class="parts-total">Total qty bagian: <strong id="partsTotalQty">0</strong> — Qty Total di atas harus sama dengan ini.</div>
+        </div>
+
+        <div class="dosj-preview">
+          <span class="lbl">Preview No. DO &amp; DO/Surat Jalan (otomatis dipakai di invoice)</span>
+          <div id="doNoPreview" class="v">—</div>
+        </div>
+      </div>
+
+      <div class="form-section-title">Purchase Order ke Supplier (PO)</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nama Supplier (Kepada Yth.)</label>
+          <select id="f_poKepadaSelect" onchange="onPoKepadaSelectChange()"></select>
+          <input type="text" id="f_poKepadaManual" placeholder="PT. Nama Supplier Baru" style="margin-top:6px;display:none;">
+        </div>
+        <div class="field"><label>No. PO ke Supplier (otomatis, = No. INV/DO)</label><input type="text" id="f_poNo" class="computed" readonly></div>
+        <div class="field"><label>Tanggal Dokumen PO</label><input type="text" id="f_poTglDokumen" placeholder="15 April 2026"></div>
+        <div class="field"><label>Fuel Request</label><input type="text" id="f_poFuelRequest" placeholder="PT Trans Ocean Permata – Palembang"></div>
+        <div class="field">
+          <label>Syarat Pembayaran / Termin (PO)</label>
+          <select id="f_poTerminSelect" onchange="onPoTerminChange()"></select>
+          <input type="text" id="f_poTerminManual" placeholder="mis. Tempo 60 Hari Setelah Barang Diterima" style="margin-top:6px;display:none;">
+        </div>
+        <div class="field">
+          <label>Toleransi Penyusutan</label>
+          <select id="f_poToleransi" onchange="onToleransiChange()">
+            <option value="0%">0%</option>
+            <option value="0.3%">0.3%</option>
+            <option value="manual">Isi manual...</option>
+          </select>
+          <input type="text" id="f_poToleransiManual" placeholder="mis. 0,5%" style="margin-top:6px;display:none;">
+        </div>
+        <div class="field">
+          <label>Metode Pengiriman</label>
+          <select id="f_poMetodeKirim">
+            <option value="FRANCO">Franco</option>
+            <option value="LOCO">Loco</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-hint" style="margin:-4px 0 12px;">Tanggal pengiriman di dokumen PO otomatis mengikuti <strong>Tanggal Pengiriman</strong> di bagian Customer &amp; Referensi di atas.</div>
+
+      <div class="form-section-title" style="margin-top:14px;">Rincian Harga PO <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0;">(independen dari harga Invoice ke customer)</span></div>
+      <div class="form-grid">
+        <div class="field"><label>Nama Item di PO</label><input type="text" id="f_poProduk" placeholder="FUEL B-40" oninput="calcPoPreview()"></div>
+        <div class="field"><label>Qty (Liter)</label><input type="text" id="f_poQty" placeholder="15.000" oninput="calcPoPreview()"></div>
+        <div class="field"><label>Harga Beli / Unit dari Supplier (Rp)</label><input type="text" id="f_poHarga" placeholder="13.100,00" oninput="calcPoPreview()"></div>
+        <div class="field"><label>PPN PO (%)</label><input type="text" id="f_poPpn" value="11" oninput="calcPoPreview()"></div>
+      </div>
+      <div class="calc-box" id="poCalcBox">
+        <div class="calc-row"><span>Harga Satuan (sebelum PPN)</span><span id="poCalcHarga">Rp0</span></div>
+        <div class="calc-row"><span>PPN / Liter</span><span id="poCalcPpn">Rp0</span></div>
+        <div class="calc-row total"><span>Total per Liter (all-in)</span><input type="text" id="poCalcPerLiterInput" class="calc-total-input" placeholder="Rp0" oninput="onPoPerLiterInputTyping()" onchange="onPoPerLiterInputChange()"></div>
+        <div class="calc-row total"><span>Total Jumlah PO (IDR)</span><span id="poCalcTotal">Rp0</span></div>
+        <div class="calc-hint">Isi <strong>Harga Beli / Unit</strong> di atas buat hitung Total per Liter otomatis, <strong>atau</strong> isi <strong>Total per Liter (all-in)</strong> di sini untuk auto-hitung mundur Harga Beli / Unit dasarnya (sudah termasuk PPN PO).</div>
+      </div>
+
+      <div class="form-section-title">Status Pembukuan</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Status Pembayaran Invoice</label>
+          <select id="f_status"><option value="belum">Belum Lunas</option><option value="lunas">Lunas</option></select>
+        </div>
+        <div class="field">
+          <label>Status Pengiriman PO (dari Supplier)</label>
+          <select id="f_poStatus"><option value="non-delivered">Non-Delivered</option><option value="delivered">Delivered</option></select>
+        </div>
+        <div class="field"><label>Catatan (opsional)</label><input type="text" id="f_catatan" placeholder="mis. transfer bertahap, retur, dll"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveRecord()">Simpan ke Pembukuan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="docFileInput" accept="application/pdf,.pdf" style="display:none" onchange="handleDocFileChange(event)">
+<input type="file" id="poClientFileInput" accept="application/pdf,.pdf,image/*" style="display:none" onchange="handlePoClientFileChange(event)">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+  if(window['pdfjsLib']){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+</script>
+<script>
+  // ======================================================================
+  // KONFIGURASI KONEKSI GOOGLE SHEETS
+  // Diisi otomatis lewat layar "Sambungkan ke Google Sheets" saat pertama
+  // kali dibuka, lalu disimpan di browser ini (localStorage) supaya tidak
+  // perlu diisi ulang. Kalau mau pre-set langsung di file (biar semua
+  // device otomatis connect tanpa isi manual), edit 2 baris di bawah ini:
+  // ======================================================================
+  let CONFIG = {
+    url: 'https://script.google.com/macros/s/AKfycbwR2ixq3Wc0glXnGwYIVvTKNofPHRdIeStsecUi0OMKjUDwxyhzxLtovnfjDeloOuQVJg/exec',
+    key: 'Global888'    // API key yang sama dengan yang diisi di Code.gs
+  };
+
+  const CONFIG_STORAGE_KEY = 'gnm_sheet_config_v2';
+
+  function loadConfig(){
+    try{
+      const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+      if(raw){
+        const saved = JSON.parse(raw);
+        if(saved.url) CONFIG.url = saved.url;
+        if(saved.key) CONFIG.key = saved.key;
+      }
+    }catch(e){}
+  }
+  function persistConfig(){
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(CONFIG));
+  }
+  function isConfigured(){
+    return CONFIG.url && CONFIG.url.startsWith('https://script.google.com/') && CONFIG.key;
+  }
+
+  function saveConfig(){
+    const url = document.getElementById('setupUrl').value.trim();
+    const key = document.getElementById('setupKey').value.trim();
+    if(!url.startsWith('https://script.google.com/')){
+      showSetupError('URL kelihatannya belum benar. Harus mulai dengan https://script.google.com/...');
+      return;
+    }
+    if(!key){
+      showSetupError('API Key belum diisi.');
+      return;
+    }
+    CONFIG = {url, key};
+    persistConfig();
+    init();
+  }
+
+  function showSetupError(msg){
+    const el = document.getElementById('setupError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  // ---- Nomor otomatis (bulan romawi) ----
+  const ROMAN = {1:'I',2:'II',3:'III',4:'IV',5:'V',6:'VI',7:'VII',8:'VIII',9:'IX',10:'X',11:'XI',12:'XII'};
+  const PART_LETTERS = ['A','B','C','D','E','F','G','H'];
+
+  function computeInvNo(noUrut, bulanIdx, tahun){
+    if(!noUrut || !bulanIdx || !tahun) return '';
+    return `${noUrut}/INV/GNM/${ROMAN[bulanIdx]}/${tahun}`;
+  }
+  function computeDoBase(noUrut, bulanIdx, tahun){
+    if(!noUrut || !bulanIdx || !tahun) return '';
+    return `${noUrut}/DO-GNM/${ROMAN[bulanIdx]}/${tahun}`;
+  }
+  function computeDoNoForPart(noUrut, bulanIdx, tahun, letter){
+    if(!noUrut || !bulanIdx || !tahun) return '';
+    return `${noUrut}${letter||''}/DO-GNM/${ROMAN[bulanIdx]}/${tahun}`;
+  }
+  function computePoNo(noUrut, bulanIdx, tahun){
+    if(!noUrut || !bulanIdx || !tahun) return '';
+    return `${noUrut}/PO-GNM/${ROMAN[bulanIdx]}/${tahun}`;
+  }
+
+  // ---- Konfigurasi generator yang terhubung ----
+  // Buat nambah generator baru nanti: tinggal tambah 1 object di array ini.
+  const GENERATORS = [
+    {
+      key: 'gnm_final',
+      label: 'Invoice GNM (Belum TTD)',
+      file: 'INV_Generator_GNM__Final_.html',
+      params: r => invoiceParams(r)
+    },
+    {
+      key: 'gnm_signed',
+      label: 'Invoice GNM (Sudah TTD)',
+      file: 'INV_Generator_GNM__Signed_.html',
+      params: r => invoiceParams(r)
+    },
+    {
+      key: 'gnm_po',
+      label: 'Purchase Order (ke Supplier)',
+      file: 'PO_Generator_GNM.html',
+      params: r => poParams(r)
+    }
+  ];
+
+  function poParams(r){
+    return {
+      po: r.poNo || computePoNo(r.noUrut, r.bulanIdx, r.tahun),
+      tgldok: r.poTglDokumen, kepada: r.poKepada, fuelreq: r.poFuelRequest,
+      produk: r.poProduk, qty: r.poQty, harga: r.poHarga,
+      ppn: withPercent(r.poPpn), toleransi: r.poToleransi, metode: r.poMetodeKirim,
+      termin: r.poTermin, tglkirim: r.tglkirim
+    };
+  }
+
+  // Nilai persen di sheet disimpan mentah (mis. "11" atau "7,5"), tapi
+  // generator invoice menampilkannya apa adanya, jadi tanda "%" harus
+  // ditambahkan di sini supaya invoice tidak nampilin "11" doang.
+  function withPercent(str){
+    const s = String(str == null ? '' : str).trim();
+    if(!s) return s;
+    return s.endsWith('%') ? s : s + '%';
+  }
+
+  function invoiceParams(r){
+    return {
+      inv: r.inv, tgl: r.tgl, faktur: r.faktur, kepada: r.kepada,
+      po: r.po, tglpo: r.tglpo, dosj: r.dosj, tglkirim: r.tglkirim,
+      jatuhtempo: r.jatuhtempo, produk: r.produk, deskripsi: r.deskripsi,
+      qty: r.qty, harga: r.harga, ppn: withPercent(r.ppn), pbbkb: withPercent(r.pbbkb),
+      pbbkbon: r.pbbkbon ? '1' : '0'
+    };
+  }
+
+  function getParts(r){
+    try{
+      const arr = JSON.parse(r.doPartsJson || '[]');
+      return Array.isArray(arr) && arr.length ? arr : [];
+    }catch(e){ return []; }
+  }
+
+  function doPartParams(r, part){
+    return {
+      do: part.doNo, hari: r.tglkirim, posup: r.poSupplier,
+      qty: part.qty, poclient: r.po, lambung: r.lambung,
+      plat: part.plat, tujuan: r.tujuan, segel: (part.segel || r.segel || ''),
+      driver: part.driver
+    };
+  }
+
+  let records = [];
+  let isModalOpen = false;
+  let pollTimer = null;
+
+  // ---- Filter Bulan & Tahun (terpisah, saling melengkapi) ----
+  const MONTH_NAMES = {1:'Januari',2:'Februari',3:'Maret',4:'April',5:'Mei',6:'Juni',
+    7:'Juli',8:'Agustus',9:'September',10:'Oktober',11:'November',12:'Desember'};
+  const now0 = new Date();
+  const CURRENT_MONTH = now0.getMonth()+1;
+  const CURRENT_YEAR = now0.getFullYear();
+  let monthFilter = String(CURRENT_MONTH); // 'all' atau '1'..'12', default: bulan berjalan
+  let yearFilter = String(CURRENT_YEAR);   // 'all' atau tahun, default: tahun berjalan
+
+  function periodKey(r){
+    const y = parseInt(r.tahun, 10);
+    const m = parseInt(r.bulanIdx, 10);
+    if(!y || !m) return null;
+    return `${y}-${m}`;
+  }
+
+  function populatePeriodDropdown(){
+    const monthSel = document.getElementById('monthFilter');
+    const yearSel = document.getElementById('yearFilter');
+
+    // --- Dropdown Bulan: tetap 12 bulan + "Semua Bulan" (bulan itu tetap, gak tergantung data) ---
+    let monthHtml = `<option value="all">Semua Bulan</option>`;
+    for(let m = 1; m <= 12; m++){
+      const label = MONTH_NAMES[m] + (m === CURRENT_MONTH ? ' (Bulan Ini)' : '');
+      monthHtml += `<option value="${m}" ${String(m) === monthFilter ? 'selected' : ''}>${label}</option>`;
+    }
+    monthSel.innerHTML = monthHtml;
+    monthSel.value = monthFilter;
+
+    // --- Dropdown Tahun: dinamis dari data yang ada, plus tahun berjalan selalu tersedia ---
+    const years = new Set();
+    records.forEach(r => { const y = parseInt(r.tahun, 10); if(y) years.add(y); });
+    years.add(CURRENT_YEAR);
+    if(yearFilter !== 'all') years.add(parseInt(yearFilter, 10));
+    const sortedYears = Array.from(years).sort((a,b) => b - a); // terbaru dulu
+
+    let yearHtml = `<option value="all">Semua Tahun</option>`;
+    yearHtml += sortedYears.map(y =>
+      `<option value="${y}" ${String(y) === yearFilter ? 'selected' : ''}>${y}${y === CURRENT_YEAR ? ' (Tahun Ini)' : ''}</option>`
+    ).join('');
+    yearSel.innerHTML = yearHtml;
+    yearSel.value = yearFilter;
+  }
+
+  function onPeriodFilterChange(){
+    monthFilter = document.getElementById('monthFilter').value;
+    yearFilter = document.getElementById('yearFilter').value;
+    renderTable();
+  }
+
+  function getFilteredByPeriod(list){
+    return list.filter(r => {
+      const y = parseInt(r.tahun, 10);
+      const m = parseInt(r.bulanIdx, 10);
+      if(monthFilter !== 'all' && String(m) !== monthFilter) return false;
+      if(yearFilter !== 'all' && String(y) !== yearFilter) return false;
+      return true;
+    });
+  }
+
+  // ---- API calls ----
+
+  // Google Apps Script Web App kadang lambat "bangun" (cold start) atau
+  // kadang balikin error transient (quota/lock sesaat). Daripada user harus
+  // klik ulang manual berkali-kali, kita retry otomatis dengan backoff, plus
+  // timeout supaya nggak nge-hang lama kalau memang lagi bermasalah.
+  async function fetchWithTimeout_(url, options, timeoutMs){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try{
+      return await fetch(url, Object.assign({}, options, {signal: controller.signal}));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function apiCallWithRetry_(url, options, opts){
+    opts = opts || {};
+    const attempts = opts.attempts || 3;
+    const timeoutMs = opts.timeoutMs || 20000;
+    const onRetry = opts.onRetry; // (attemptNumber, totalAttempts) => void
+    let lastErr;
+    for(let attempt = 1; attempt <= attempts; attempt++){
+      try{
+        const res = await fetchWithTimeout_(url, options, timeoutMs);
+        let data;
+        try{
+          data = await res.json();
+        }catch(parseErr){
+          // Backend seharusnya selalu balikin JSON. Kalau tetap gagal parse,
+          // biasanya berarti Google infra lagi bermasalah (bukan salah data
+          // kita) — anggap error transient, layak di-retry.
+          throw new Error('Server tidak membalas dengan format yang diharapkan (kemungkinan gangguan sementara di Google).');
+        }
+        if(!data.ok) throw new Error(data.error || 'Permintaan gagal.');
+        return data;
+      }catch(err){
+        lastErr = err;
+        const isAbort = err && err.name === 'AbortError';
+        if(attempt < attempts){
+          if(onRetry) onRetry(attempt, attempts);
+          await new Promise(r => setTimeout(r, attempt * 900)); // backoff: 0.9s, 1.8s, ...
+          continue;
+        }
+        if(isAbort){
+          throw new Error('Koneksi ke Google Sheets timeout (server lambat merespons). Coba lagi dalam beberapa detik.');
+        }
+        throw lastErr;
+      }
+    }
+  }
+
+  async function apiList(onRetry){
+    const url = CONFIG.url + '?key=' + encodeURIComponent(CONFIG.key);
+    const data = await apiCallWithRetry_(url, {method:'GET'}, {onRetry});
+    return data.records;
+  }
+  async function apiSave(record, onRetry){
+    await apiCallWithRetry_(CONFIG.url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'save', key: CONFIG.key, record})
+    }, {onRetry});
+  }
+  async function apiDelete(id, onRetry){
+    await apiCallWithRetry_(CONFIG.url, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'delete', key: CONFIG.key, id})
+    }, {onRetry});
+  }
+
+  function setSyncStatus(state, label){
+    const dot = document.getElementById('syncDot');
+    dot.className = 'sync-dot' + (state === 'syncing' ? ' syncing' : state === 'error' ? ' error' : '');
+    document.getElementById('syncLabel').textContent = label;
+  }
+
+  async function fetchRecords(manual){
+    if((isModalOpen || rowActionBusy) && !manual) return; // jangan ganggu saat user lagi isi form / upload dokumen
+    setSyncStatus('syncing', manual ? 'Refresh...' : 'Menyinkronkan...');
+    document.getElementById('refreshBtn').disabled = true;
+    try{
+      records = await apiList();
+      populatePeriodDropdown();
+      renderTable();
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2,'0');
+      const mm = String(now.getMinutes()).padStart(2,'0');
+      const ss = String(now.getSeconds()).padStart(2,'0');
+      setSyncStatus('ok', 'Tersinkron ' + hh + ':' + mm + ':' + ss);
+    }catch(err){
+      setSyncStatus('error', 'Gagal sync');
+      showToast('Gagal mengambil data: ' + err.message, true);
+    }finally{
+      document.getElementById('refreshBtn').disabled = false;
+    }
+  }
+
+  // ---- Util kalkulasi (sama seperti generator) ----
+  function parseNum(str){
+    if(str === null || str === undefined || str === '') return 0;
+    if(typeof str === 'number') return isNaN(str) ? 0 : str;
+    str = String(str).replace(/[^0-9.,]/g,'');
+    let parts = str.split(',');
+    let intPart = parts[0].replace(/\./g,'');
+    let dec = parts[1] ? parts[1] : '0';
+    let val = parseFloat(intPart + '.' + dec);
+    return isNaN(val) ? 0 : val;
+  }
+  function parsePercent(str){
+    if(!str) return 0;
+    let n = parseFloat(String(str).replace(',', '.').replace(/[^0-9.]/g,''));
+    return isNaN(n) ? 0 : n;
+  }
+  function formatRupiah(num){
+    num = Math.round(num || 0);
+    return 'Rp' + num.toLocaleString('id-ID');
+  }
+  // Versi 2 desimal (lebih presisi) buat baris-baris kalkulasi otomatis di
+  // calc-box (Jumlah, PBBKB, PPN, Harga Total/Liter, Total Tagihan, dst),
+  // supaya tidak ada rupiah "hilang" akibat pembulatan ke angka bulat.
+  function formatRupiah2(num){
+    num = num || 0;
+    const neg = num < 0;
+    // Bulatkan ke 2 desimal dulu (hati-hati floating point: pakai toFixed lalu parse ulang)
+    const rounded = Math.abs(Math.round((num + Number.EPSILON) * 100) / 100);
+    const fixed = rounded.toFixed(2); // "1234567.89"
+    const [intStr, decStr] = fixed.split('.');
+    const withSep = intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (neg ? '-' : '') + 'Rp' + withSep + ',' + decStr;
+  }
+  // Format angka jadi string harga bergaya Indonesia (titik ribuan, koma desimal),
+  // dipakai baik oleh auto-isi Upload PO Client maupun hitung-mundur dari Total Tagihan.
+  // PENTING: bulatkan dulu ke 2 desimal SEBELUM dipisah jadi bagian bulat & desimal,
+  // supaya tidak ada mismatch pembulatan (mis. 14543,9969.. harus jadi 14.544,00,
+  // bukan malah "kepotong" jadi 14.543,00).
+  function formatHargaID(n){
+    if(n === null || n === undefined || isNaN(n)) return '';
+    const neg = n < 0;
+    const rounded = Math.abs(Math.round((n + Number.EPSILON) * 100) / 100);
+    const fixed = rounded.toFixed(2);
+    const [intStr, decStr] = fixed.split('.');
+    const withSep = intStr.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (neg ? '-' : '') + withSep + ',' + decStr;
+  }
+  function computeTotal(r){
+    const qty = parseNum(r.qty);
+    const harga = parseNum(r.harga);
+    const ppnPersen = parsePercent(r.ppn);
+    const pbbkbPersen = parsePercent(r.pbbkb);
+    const jumlah1 = qty * harga;
+    const jumlahPbbkb = r.pbbkbon ? jumlah1 * (pbbkbPersen/100) : 0;
+    const jumlah2 = jumlah1 * (ppnPersen/100);
+    const total = jumlah1 + jumlahPbbkb + jumlah2;
+    return {jumlah1, jumlahPbbkb, jumlah2, total};
+  }
+
+  // ---- State bagian DO (parts) yang sedang diedit di modal ----
+  let currentParts = []; // [{qty, plat, driver}]
+  // Harga dasar / unit dengan presisi PENUH (bukan yang sudah dibulatkan 2 desimal
+  // buat ditampilkan di field Harga/Unit). Dipakai sebagai sumber kebenaran tunggal
+  // buat semua kalkulasi di calc-box, supaya field lain (Produk, Qty, dll) yang ikut
+  // memicu calcPreview() tidak menimpa presisi Total dengan versi yang sudah dibulatkan.
+  let currentHargaDasar = 0;
+
+  function onNumberingChange(){
+    const noUrut = document.getElementById('f_noUrut').value.trim();
+    const bulanIdx = parseInt(document.getElementById('f_bulanIdx').value, 10);
+    const tahun = document.getElementById('f_tahun').value.trim();
+    document.getElementById('f_inv').value = computeInvNo(noUrut, bulanIdx, tahun);
+    document.getElementById('f_doBase').value = computeDoBase(noUrut, bulanIdx, tahun);
+    document.getElementById('f_poNo').value = computePoNo(noUrut, bulanIdx, tahun);
+    renderPartsPreview();
+  }
+
+  function onToleransiChange(){
+    const v = document.getElementById('f_poToleransi').value;
+    document.getElementById('f_poToleransiManual').style.display = (v === 'manual') ? 'block' : 'none';
+  }
+  function resolvedToleransi(){
+    const v = document.getElementById('f_poToleransi').value;
+    if(v === 'manual') return document.getElementById('f_poToleransiManual').value.trim();
+    return v;
+  }
+
+  // ---- Syarat Pembayaran / Termin (dropdown + isi manual) ----
+  const TERM_OPTIONS = [
+    'Tumpah Bayar (Cash on Delivery)',
+    'Tempo 3 Hari setelah Barang Diterima',
+    'Tempo 3 Hari setelah Invoice Diterima',
+    'Tempo 7 Hari setelah Barang Diterima',
+    'Tempo 7 Hari setelah Invoice Diterima',
+    'Tempo 14 Hari setelah Barang Diterima',
+    'Tempo 14 Hari setelah Invoice Diterima',
+    'Tempo 30 Hari setelah Barang Diterima',
+    'Tempo 30 Hari setelah Invoice Diterima',
+    'Tempo 45 Hari setelah Barang Diterima',
+    'Tempo 45 Hari setelah Invoice Diterima'
+  ];
+  function termOptionsHtml(){
+    return TERM_OPTIONS.map(t => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join('')
+      + '<option value="manual">Lainnya (isi manual)</option>';
+  }
+  function syncTermField(selectId, manualId, savedValue, fallback){
+    const select = document.getElementById(selectId);
+    select.innerHTML = termOptionsHtml();
+    const val = (savedValue === undefined || savedValue === null || savedValue === '') ? (fallback || '') : savedValue;
+    const isPreset = TERM_OPTIONS.includes(val);
+    select.value = isPreset ? val : (val ? 'manual' : TERM_OPTIONS[5]);
+    document.getElementById(manualId).style.display = (select.value === 'manual') ? 'block' : 'none';
+    document.getElementById(manualId).value = isPreset ? '' : val;
+  }
+  function onJatuhTempoChange(){
+    const v = document.getElementById('f_jatuhtempoSelect').value;
+    document.getElementById('f_jatuhtempoManual').style.display = (v === 'manual') ? 'block' : 'none';
+  }
+  function resolvedJatuhTempo(){
+    const v = document.getElementById('f_jatuhtempoSelect').value;
+    if(v === 'manual') return document.getElementById('f_jatuhtempoManual').value.trim();
+    return v;
+  }
+  function onPoTerminChange(){
+    const v = document.getElementById('f_poTerminSelect').value;
+    document.getElementById('f_poTerminManual').style.display = (v === 'manual') ? 'block' : 'none';
+  }
+  function resolvedPoTermin(){
+    const v = document.getElementById('f_poTerminSelect').value;
+    if(v === 'manual') return document.getElementById('f_poTerminManual').value.trim();
+    return v;
+  }
+
+  // ---- Nama PT (Customer / Supplier) — dropdown dari daftar yang pernah diinput + isi manual ----
+  function uniqueValues(field){
+    const set = new Set();
+    records.forEach(r => { if(r[field] && String(r[field]).trim()) set.add(String(r[field]).trim()); });
+    return Array.from(set).sort((a,b) => a.localeCompare(b, 'id'));
+  }
+  function namedSelectOptionsHtml(list){
+    let html = '<option value="">— Pilih dari daftar —</option>';
+    list.forEach(v => { html += `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`; });
+    html += '<option value="__manual__">+ PT / Perusahaan Baru (isi manual)</option>';
+    return html;
+  }
+  function refreshNameDropdowns(){
+    document.getElementById('f_kepadaSelect').innerHTML = namedSelectOptionsHtml(uniqueValues('kepada'));
+    document.getElementById('f_poKepadaSelect').innerHTML = namedSelectOptionsHtml(uniqueValues('poKepada'));
+  }
+  function syncNamedField(selectId, manualId, savedValue){
+    const select = document.getElementById(selectId);
+    const manual = document.getElementById(manualId);
+    const val = savedValue || '';
+    const hasOption = val !== '' && Array.from(select.options).some(o => o.value === val);
+    if(val && hasOption){
+      select.value = val;
+      manual.style.display = 'none';
+      manual.value = '';
+    } else if(val){
+      select.value = '__manual__';
+      manual.style.display = 'block';
+      manual.value = val;
+    } else {
+      select.value = '';
+      manual.style.display = 'none';
+      manual.value = '';
+    }
+  }
+  function onKepadaSelectChange(){
+    const v = document.getElementById('f_kepadaSelect').value;
+    document.getElementById('f_kepadaManual').style.display = (v === '__manual__') ? 'block' : 'none';
+  }
+  function resolvedKepada(){
+    const v = document.getElementById('f_kepadaSelect').value;
+    if(v === '__manual__') return document.getElementById('f_kepadaManual').value.trim();
+    return v;
+  }
+  function onPoKepadaSelectChange(){
+    const v = document.getElementById('f_poKepadaSelect').value;
+    document.getElementById('f_poKepadaManual').style.display = (v === '__manual__') ? 'block' : 'none';
+  }
+  function resolvedPoKepada(){
+    const v = document.getElementById('f_poKepadaSelect').value;
+    if(v === '__manual__') return document.getElementById('f_poKepadaManual').value.trim();
+    return v;
+  }
+
+  function onSplitToggle(){
+    const on = document.getElementById('f_splitOn').checked;
+    document.getElementById('singlePartWrap').style.display = on ? 'none' : 'grid';
+    document.getElementById('multiPartWrap').style.display = on ? 'block' : 'none';
+    document.getElementById('segelSingleWrap').style.display = on ? 'none' : 'block';
+    if(on){
+      if(currentParts.length < 2){
+        const p1 = currentParts[0] || {
+          qty: document.getElementById('f_qty').value,
+          plat: document.getElementById('f_plat1').value,
+          driver: document.getElementById('f_driver1').value,
+          segel: document.getElementById('f_segel').value
+        };
+        currentParts = [p1, {qty:'', plat:'', driver:'', segel:''}];
+      }
+      renderParts();
+    } else if(currentParts.length){
+      document.getElementById('f_plat1').value = currentParts[0].plat || '';
+      document.getElementById('f_driver1').value = currentParts[0].driver || '';
+    }
+    renderPartsPreview();
+  }
+
+  function addPart(){
+    if(currentParts.length >= PART_LETTERS.length) return;
+    currentParts.push({qty:'', plat:'', driver:'', segel:''});
+    renderParts();
+  }
+  function removePart(idx){
+    if(currentParts.length <= 1) return;
+    currentParts.splice(idx, 1);
+    renderParts();
+  }
+  function updatePart(idx, field, val){
+    currentParts[idx][field] = val;
+    renderPartsPreview();
+  }
+
+  function renderParts(){
+    const wrap = document.getElementById('partsRows');
+    wrap.innerHTML = currentParts.map((p, i) => `
+      <div class="parts-row">
+        <div class="badge">${PART_LETTERS[i]}</div>
+        <input type="text" value="${escapeAttr(p.qty)}" placeholder="10.000" oninput="updatePart(${i},'qty',this.value)">
+        <input type="text" value="${escapeAttr(p.plat)}" placeholder="B 9012 XYZ" oninput="updatePart(${i},'plat',this.value)">
+        <input type="text" value="${escapeAttr(p.driver)}" placeholder="Nama driver" oninput="updatePart(${i},'driver',this.value)">
+        <input type="text" value="${escapeAttr(p.segel)}" placeholder="SGL-00123" oninput="updatePart(${i},'segel',this.value)">
+        <button type="button" class="rm-btn" onclick="removePart(${i})" title="Hapus bagian">✕</button>
+      </div>`).join('');
+    renderPartsPreview();
+  }
+
+  function escapeAttr(v){ return (v===undefined||v===null?'':String(v)).replace(/"/g,'&quot;'); }
+
+  function currentPartsWithDoNo(){
+    const noUrut = document.getElementById('f_noUrut').value.trim();
+    const bulanIdx = parseInt(document.getElementById('f_bulanIdx').value, 10);
+    const tahun = document.getElementById('f_tahun').value.trim();
+    const splitOn = document.getElementById('f_splitOn').checked;
+    let parts;
+    if(splitOn){
+      parts = currentParts.map((p,i) => ({
+        label: PART_LETTERS[i], qty: p.qty, plat: p.plat, driver: p.driver, segel: p.segel,
+        doNo: computeDoNoForPart(noUrut, bulanIdx, tahun, PART_LETTERS[i])
+      }));
+    } else {
+      parts = [{
+        label: '', qty: document.getElementById('f_qty').value,
+        plat: document.getElementById('f_plat1').value,
+        driver: document.getElementById('f_driver1').value,
+        segel: document.getElementById('f_segel').value,
+        doNo: computeDoBase(noUrut, bulanIdx, tahun)
+      }];
+    }
+    return parts;
+  }
+
+  function computeDosjFromParts(parts){
+    if(!parts.length) return '';
+    if(parts.length === 1) return parts[0].doNo;
+    return `${parts[0].doNo} - ${parts[parts.length-1].doNo}`;
+  }
+
+  function renderPartsPreview(){
+    const splitOn = document.getElementById('f_splitOn').checked;
+    const parts = currentPartsWithDoNo();
+    const dosj = computeDosjFromParts(parts);
+    document.getElementById('doNoPreview').textContent = dosj || '—';
+
+    if(splitOn){
+      const total = parts.reduce((s,p) => s + parseNum(p.qty), 0);
+      document.getElementById('partsTotalQty').textContent = total.toLocaleString('id-ID');
+      const qtyTotalInput = parseNum(document.getElementById('f_qty').value);
+      const totalEl = document.getElementById('partsTotalQty');
+      totalEl.style.color = (Math.round(total) === Math.round(qtyTotalInput)) ? 'var(--good)' : 'var(--bad)';
+    }
+  }
+
+  function showToast(msg, isErr){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    setTimeout(()=>{ t.className = 'toast'; }, 2800);
+  }
+
+  // ---- Modal ----
+  function openModal(record){
+    isModalOpen = true;
+    document.getElementById('modalTitle').textContent = record ? 'Edit Invoice' : 'Invoice Baru';
+    document.getElementById('f_id').value = record ? record.id : '';
+    document.getElementById('f_noUrut').value = record ? (record.noUrut||'') : '';
+    document.getElementById('f_bulanIdx').value = record ? (record.bulanIdx||1) : (new Date().getMonth()+1);
+    document.getElementById('f_tahun').value = record ? (record.tahun||'') : String(new Date().getFullYear());
+    document.getElementById('f_faktur').value = record ? record.faktur : '';
+    document.getElementById('f_tgl').value = record ? record.tgl : '';
+    refreshNameDropdowns();
+    syncTermField('f_jatuhtempoSelect', 'f_jatuhtempoManual', record ? record.jatuhtempo : '', 'Tempo 14 Hari setelah Barang Diterima');
+    syncNamedField('f_kepadaSelect', 'f_kepadaManual', record ? record.kepada : '');
+    document.getElementById('f_po').value = record ? record.po : '';
+    document.getElementById('f_tglpo').value = record ? record.tglpo : '';
+    document.getElementById('f_tglkirim').value = record ? record.tglkirim : '';
+    document.getElementById('f_produk').value = record ? record.produk : 'HSD Bio Solar (Industri) B50';
+    document.getElementById('f_deskripsi').value = record ? record.deskripsi : 'Spec Migas';
+    document.getElementById('f_qty').value = record ? record.qty : '';
+    document.getElementById('f_harga').value = record ? record.harga : '';
+    currentHargaDasar = parseNum(record ? record.harga : '');
+    document.getElementById('f_ppn').value = record ? record.ppn : '11';
+    document.getElementById('f_pbbkb').value = record ? record.pbbkb : '7,5';
+    document.getElementById('f_pbbkbon').checked = record ? !!record.pbbkbon : true;
+    document.getElementById('f_status').value = record ? record.status : 'belum';
+    document.getElementById('f_poStatus').value = record ? (record.poStatus === 'delivered' ? 'delivered' : 'non-delivered') : 'non-delivered';
+    document.getElementById('f_catatan').value = record ? record.catatan : '';
+
+    document.getElementById('f_poSupplier').value = record ? (record.poSupplier||'') : '';
+    document.getElementById('f_lambung').value = record ? (record.lambung||'') : '';
+    document.getElementById('f_tujuan').value = record ? (record.tujuan||'') : '';
+    document.getElementById('f_segel').value = record ? (record.segel||'') : '';
+
+    syncNamedField('f_poKepadaSelect', 'f_poKepadaManual', record ? (record.poKepada||'') : '');
+    document.getElementById('f_poTglDokumen').value = record ? (record.poTglDokumen||'') : '';
+    document.getElementById('f_poFuelRequest').value = record ? (record.poFuelRequest||'') : '';
+    document.getElementById('f_poMetodeKirim').value = record ? (record.poMetodeKirim||'FRANCO') : 'FRANCO';
+    syncTermField('f_poTerminSelect', 'f_poTerminManual', record ? (record.poTermin||'') : '', 'Tumpah Bayar (Cash on Delivery)');
+    document.getElementById('f_poProduk').value = record ? (record.poProduk||'') : 'FUEL B-40';
+    document.getElementById('f_poQty').value = record ? (record.poQty||'') : '';
+    document.getElementById('f_poHarga').value = record ? (record.poHarga||'') : '';
+    document.getElementById('f_poPpn').value = record ? (record.poPpn||'') : '11';
+    const savedToleransi = record ? (record.poToleransi||'0%') : '0%';
+    const toleransiSelect = document.getElementById('f_poToleransi');
+    const isPreset = ['0%','0.3%'].includes(savedToleransi);
+    toleransiSelect.value = isPreset ? savedToleransi : 'manual';
+    document.getElementById('f_poToleransiManual').value = isPreset ? '' : savedToleransi;
+    onToleransiChange();
+    calcPoPreview();
+
+    const parts = record ? getParts(record) : [];
+    const splitOn = record ? (!!record.splitOn && parts.length > 1) : false;
+    document.getElementById('f_splitOn').checked = splitOn;
+    document.getElementById('singlePartWrap').style.display = splitOn ? 'none' : 'grid';
+    document.getElementById('multiPartWrap').style.display = splitOn ? 'block' : 'none';
+    document.getElementById('segelSingleWrap').style.display = splitOn ? 'none' : 'block';
+
+    if(splitOn){
+      currentParts = parts.map(p => ({qty:p.qty||'', plat:p.plat||'', driver:p.driver||'', segel:p.segel||''}));
+      renderParts();
+    } else {
+      currentParts = [{qty:'', plat:'', driver:'', segel:''}];
+      document.getElementById('f_plat1').value = parts[0] ? (parts[0].plat||'') : '';
+      document.getElementById('f_driver1').value = parts[0] ? (parts[0].driver||'') : '';
+    }
+
+    onNumberingChange();
+    calcPreview();
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal(){
+    isModalOpen = false;
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  // ================= UPLOAD PO CLIENT — AUTO-ISI FORM =================
+  // Baca file PO dari client (PDF), tarik teksnya lewat PDF.js, lalu coba
+  // tebak No. PO, tanggal, qty, harga, produk, tujuan & nama customer.
+  // Semua hasil tebakan ini TETAP di field yang bisa diedit manual —
+  // heuristik ini best-effort, jadi selalu cek lagi sebelum simpan.
+
+  function setPoUploadStatus(msg, kind){
+    const el = document.getElementById('poUploadStatus');
+    if(!el) return;
+    el.textContent = msg || '';
+    el.className = 'po-upload-status' + (kind ? (' ' + kind) : '');
+  }
+
+  function startPoClientUpload(){
+    openModal(); // buka form kosong (Invoice Baru), lalu langsung minta pilih file
+    setPoUploadStatus('', '');
+    document.getElementById('poClientFileInput').value = '';
+    document.getElementById('poClientFileInput').click();
+  }
+
+  async function handlePoClientFileChange(event){
+    const file = event.target.files && event.target.files[0];
+    event.target.value = '';
+    if(!file) return;
+
+    const nameLower = file.name.toLowerCase();
+    const isPdf = file.type === 'application/pdf' || nameLower.endsWith('.pdf');
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(nameLower);
+
+    if(!isPdf && !isImage){
+      setPoUploadStatus('File harus PDF atau gambar (JPG/PNG/dll)', 'err');
+      showToast('File harus berformat PDF atau gambar (JPG/PNG/dll)', true);
+      return;
+    }
+    if(isPdf && !window['pdfjsLib']){
+      setPoUploadStatus('Gagal memuat pembaca PDF (cek koneksi internet)', 'err');
+      showToast('Library pembaca PDF gagal dimuat, coba refresh halaman', true);
+      return;
+    }
+    if(isImage && !window['Tesseract']){
+      setPoUploadStatus('Gagal memuat pembaca OCR gambar (cek koneksi internet)', 'err');
+      showToast('Library OCR gambar gagal dimuat, coba refresh halaman', true);
+      return;
+    }
+
+    try{
+      let text;
+      if(isPdf){
+        setPoUploadStatus('Membaca "' + file.name + '"...', 'busy');
+        text = await extractPdfText(file);
+        if(!text || !text.trim()){
+          setPoUploadStatus('Teks tidak terbaca dari PDF ini (mungkin hasil scan gambar)', 'err');
+          showToast('PDF ini kelihatannya hasil scan gambar, isi field manual ya', true);
+          return;
+        }
+      } else {
+        text = await extractImageTextOCR(file, (pct) => {
+          setPoUploadStatus('Membaca gambar "' + file.name + '" (OCR)... ' + pct + '%', 'busy');
+        });
+        if(!text || !text.trim()){
+          setPoUploadStatus('Teks tidak terbaca dari gambar ini — coba foto yang lebih jelas/terang', 'err');
+          showToast('Gambar ini gak kebaca teksnya, coba foto ulang yang lebih jelas', true);
+          return;
+        }
+      }
+      const data = parsePoClientText(text);
+      const filledCount = applyPoClientDataToForm(data);
+      if(filledCount > 0){
+        setPoUploadStatus('✓ ' + filledCount + ' field otomatis terisi dari "' + file.name + '" — cek & edit sebelum simpan', 'ok');
+        showToast('PO client berhasil dibaca, ' + filledCount + ' field otomatis terisi');
+      } else {
+        setPoUploadStatus('File terbaca, tapi tidak ada field yang berhasil ditebak — isi manual', 'err');
+        showToast('Field tidak berhasil ditebak dari file ini, isi manual ya', true);
+      }
+    }catch(err){
+      setPoUploadStatus('Gagal membaca file: ' + err.message, 'err');
+      showToast('Gagal membaca file: ' + err.message, true);
+    }
+  }
+
+  async function extractPdfText(file){
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let fullText = '';
+    for(let i = 1; i <= pdf.numPages; i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      // Susun ulang per-baris berdasarkan posisi Y biar urutan baca lebih rapi
+      const lines = {};
+      content.items.forEach(item => {
+        const y = Math.round(item.transform[5]);
+        if(!lines[y]) lines[y] = [];
+        lines[y].push(item.str);
+      });
+      const ys = Object.keys(lines).map(Number).sort((a,b) => b - a);
+      fullText += ys.map(y => lines[y].join(' ')).join('\n') + '\n';
+    }
+    return fullText;
+  }
+
+  // Baca teks dari file gambar (foto/scan PO) pakai OCR (Tesseract.js), jalan
+  // sepenuhnya di browser. Lebih lambat & kurang presisi dibanding PDF teks asli,
+  // jadi hasil auto-isinya tetap perlu dicek ulang sebelum disimpan.
+  async function extractImageTextOCR(file, onProgress){
+    const result = await Tesseract.recognize(file, 'eng', {
+      logger: (m) => {
+        if(onProgress && m.status === 'recognizing text' && typeof m.progress === 'number'){
+          onProgress(Math.round(m.progress * 100));
+        }
+      }
+    });
+    return result && result.data ? result.data.text : '';
+  }
+
+  function parseIDNumber(raw){
+    if(raw === null || raw === undefined) return NaN;
+    let s = String(raw).trim().replace(/[^0-9.,]/g,'');
+    if(!s) return NaN;
+    const hasSep = /[.,]/.test(s);
+    if(!hasSep) return parseInt(s, 10);
+    const lastSepIdx = Math.max(s.lastIndexOf('.'), s.lastIndexOf(','));
+    const lastGroup = s.slice(lastSepIdx + 1);
+    if(/^[0-9]{2}$/.test(lastGroup)){
+      const intPart = s.slice(0, lastSepIdx).replace(/[.,]/g,'');
+      return parseFloat(intPart + '.' + lastGroup);
+    }
+    return parseInt(s.replace(/[.,]/g,''), 10);
+  }
+
+  function isFormattedNumberToken(tok){
+    return /^[0-9]{1,3}(?:[.,][0-9]{2,3})+$/.test(tok);
+  }
+
+  function findPoItemLine(lines){
+    let best = null, bestCount = 0;
+    for(const line of lines){
+      const tokens = line.split(/\s+/);
+      const fmt = tokens.filter(isFormattedNumberToken);
+      if(fmt.length >= 3 && fmt.length > bestCount){ best = line; bestCount = fmt.length; }
+    }
+    return best;
+  }
+
+  function extractPoItemFields(line){
+    if(!line) return {qty:null, harga:null, produk:''};
+    const tokens = line.split(/\s+/);
+    const fmtTokens = tokens.filter(isFormattedNumberToken);
+    let qty = null, harga = null;
+    if(fmtTokens.length === 3){
+      qty = parseIDNumber(fmtTokens[0]);
+      harga = parseIDNumber(fmtTokens[1]);
+    } else if(fmtTokens.length >= 4){
+      qty = parseIDNumber(fmtTokens[0]);
+      harga = parseIDNumber(fmtTokens[1]);
+    }
+    const unitWords = /^(liter|litre|ltr|kl|kilo|pcs|unit|ea)$/i;
+    let words = tokens.filter(t => !isFormattedNumberToken(t) && !unitWords.test(t) && !/^\d+$/.test(t));
+    if(words.length && /^[0-9][0-9\-]*$/.test(words[0])) words = words.slice(1);
+    const produk = words.join(' ').replace(/^[-\s]+|[-\s]+$/g,'').trim();
+    return {qty, harga, produk};
+  }
+
+  function extractPoNumber(text){
+    let m = text.match(/\bPO\.[A-Z]\.\d{4}\.\d{2}\.\d{3,6}\b/);
+    if(m) return m[0];
+    m = text.match(/\b[A-Z]{3,}-[A-Z]{2,}\/\d{2}\/\d{4}\/\d{2,6}\b/);
+    if(m) return m[0];
+    const lines = text.split(/\n/);
+    for(const line of lines){
+      if(/NARARYA/i.test(line)){
+        const num = line.match(/\b\d{6,14}\b/);
+        if(num) return num[0];
+      }
+    }
+    m = text.match(/PO\s*(?:No\.?|Number)\s*[:\-]?\s*([A-Z0-9][A-Z0-9.\-\/]{3,})/i);
+    if(m) return m[1];
+    return '';
+  }
+
+  const PO_MONTH_ID = {jan:'Januari',feb:'Februari',mar:'Maret',apr:'April',mei:'Mei',may:'Mei',jun:'Juni',jul:'Juli',agu:'Agustus',aug:'Agustus',sep:'September',okt:'Oktober',oct:'Oktober',nov:'November',des:'Desember',dec:'Desember'};
+  function extractPoDate(text){
+    const m = text.match(/\b(\d{1,2})\s+([A-Za-z]{3,})[a-zA-Z]*\s+(\d{4})\b/);
+    if(!m) return '';
+    const day = parseInt(m[1], 10);
+    const monKey = m[2].slice(0,3).toLowerCase();
+    const monthId = PO_MONTH_ID[monKey];
+    if(!monthId) return m[0];
+    return `${day} ${monthId} ${m[3]}`;
+  }
+
+  function extractPoTujuan(text){
+    let m = text.match(/Ship\s*To[:\s]+([A-Za-z0-9 .\-]{2,40}?)(?:\n|$)/i);
+    if(m) return m[1].trim();
+    let deliveryTo = '';
+    m = text.match(/DELIVERY\s*TO[^\n]*\n\s*([A-Z][A-Z\s]{1,25}?)(?=\s+(?:FUEL|\d))/i);
+    if(m) deliveryTo = m[1].trim();
+    m = text.match(/FOR\s+(.+?)\s+AT\s+([A-Za-z .]+?)(?:\n|$)/i);
+    if(m){
+      const vessel = m[1].trim();
+      const at = m[2].trim();
+      return deliveryTo ? `${vessel} - ${deliveryTo}` : `${vessel} - ${at}`;
+    }
+    return deliveryTo;
+  }
+
+  function extractPoKepada(text, knownNames){
+    const norm = s => s.toUpperCase().replace(/[^A-Z0-9 ]/g,' ').replace(/\b(PT|CV|TBK)\b/g,'').replace(/\s+/g,' ').trim();
+    const normText = norm(text);
+    for(const name of knownNames){
+      const n = norm(name);
+      if(n && normText.includes(n)) return name;
+    }
+    const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+    for(const line of lines){
+      if(/NARARYA/i.test(line)) continue;
+      if(/\b(FOR|AT|LTR|FUEL|LITER|LITRE|QTY|UNIT|PRICE|TOTAL|NOTES?)\b/i.test(line)) continue;
+      if(line.split(/\s+/).length > 8) continue;
+      const m = line.match(/\bPT\.?\s+[A-Z][A-Za-z.,&\s]{2,40}\b/);
+      if(m) return m[0].replace(/\s{2,}/g,' ').trim();
+    }
+    return '';
+  }
+
+  function parsePoClientText(text){
+    const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+    const itemLine = findPoItemLine(lines);
+    const itemFields = extractPoItemFields(itemLine);
+    return {
+      poNumber: extractPoNumber(text),
+      poDate: extractPoDate(text),
+      qty: itemFields.qty,
+      harga: itemFields.harga,
+      produk: itemFields.produk,
+      tujuan: extractPoTujuan(text),
+      kepada: extractPoKepada(text, uniqueValues('kepada'))
+    };
+  }
+
+  function applyPoClientDataToForm(data){
+    let filled = 0;
+    if(data.poNumber){ document.getElementById('f_po').value = data.poNumber; filled++; }
+    if(data.poDate){ document.getElementById('f_tglpo').value = data.poDate; filled++; }
+    if(data.qty){ document.getElementById('f_qty').value = String(data.qty).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); filled++; }
+    if(data.harga){
+      document.getElementById('f_harga').value = formatHargaID(data.harga);
+      currentHargaDasar = parseNum(data.harga);
+      filled++;
+    }
+    // Nama Produk sengaja TIDAK di-auto-isi dari PDF (biar konsisten pakai nama baku),
+    // default-nya dari openModal() dan tetap bebas diedit manual.
+    if(data.tujuan){ document.getElementById('f_tujuan').value = data.tujuan; filled++; }
+    if(data.kepada){
+      const select = document.getElementById('f_kepadaSelect');
+      const hasOption = Array.from(select.options).some(o => o.value === data.kepada);
+      if(hasOption){
+        select.value = data.kepada;
+        document.getElementById('f_kepadaManual').style.display = 'none';
+      } else {
+        select.value = '__manual__';
+        document.getElementById('f_kepadaManual').style.display = 'block';
+        document.getElementById('f_kepadaManual').value = data.kepada;
+      }
+      filled++;
+    }
+    calcPreview();
+    renderPartsPreview();
+    return filled;
+  }
+  // ================= END UPLOAD PO CLIENT =================
+
+  function calcPreview(){
+    const r = {
+      qty: document.getElementById('f_qty').value,
+      harga: currentHargaDasar, // presisi penuh, bukan re-parse dari field yang sudah dibulatkan
+      ppn: document.getElementById('f_ppn').value,
+      pbbkb: document.getElementById('f_pbbkb').value,
+      pbbkbon: document.getElementById('f_pbbkbon').checked
+    };
+    const c = computeTotal(r);
+    document.getElementById('calcJumlah1').textContent = formatRupiah2(c.jumlah1);
+    document.getElementById('calcPbbkb').textContent = formatRupiah2(c.jumlahPbbkb);
+    document.getElementById('calcPpn').textContent = formatRupiah2(c.jumlah2);
+    const totalInput = document.getElementById('calcTotalInput');
+    // Jangan timpa field Total Tagihan kalau lagi diketik user (biar gak lompat-lompat)
+    if(document.activeElement !== totalInput){
+      totalInput.value = formatRupiah2(c.total);
+    }
+    const perLiterInput = document.getElementById('calcPerLiterInput');
+    // Jangan timpa field Harga Total / Liter kalau lagi diketik user
+    if(document.activeElement !== perLiterInput){
+      const qty = parseNum(r.qty);
+      const perLiter = qty > 0 ? (c.total / qty) : 0;
+      perLiterInput.value = formatRupiah2(perLiter);
+    }
+  }
+
+  // Field Harga / Unit diisi/diedit manual oleh user -> jadikan sumber kebenaran baru
+  function onHargaFieldInput(){
+    currentHargaDasar = parseNum(document.getElementById('f_harga').value);
+    calcPreview();
+  }
+
+  // User lagi ngetik di field Total — jangan hitung apa-apa dulu, tunggu selesai (blur/Enter)
+  function onTotalInputTyping(){}
+
+  // User lagi ngetik di field Harga Total / Liter — jangan hitung apa-apa dulu, tunggu selesai (blur/Enter)
+  function onPerLiterInputTyping(){}
+
+  // Field Harga Total / Liter (all-in, sudah termasuk PPN & PBBKB) diisi manual
+  // -> hitung mundur Harga / Unit dasarnya
+  function onPerLiterInputChange(){
+    const input = document.getElementById('calcPerLiterInput');
+    const perLiterVal = parseNum(input.value);
+    if(!perLiterVal){ calcPreview(); return; }
+
+    const qty = parseNum(document.getElementById('f_qty').value);
+    const ppnPersen = parsePercent(document.getElementById('f_ppn').value);
+    const pbbkbOn = document.getElementById('f_pbbkbon').checked;
+    const pbbkbPersen = pbbkbOn ? parsePercent(document.getElementById('f_pbbkb').value) : 0;
+    const multiplier = 1 + (pbbkbPersen/100) + (ppnPersen/100);
+
+    if(multiplier <= 0){
+      showToast('PPN/PBBKB tidak valid, cek dulu isiannya', true);
+      calcPreview();
+      return;
+    }
+
+    // Harga dasar (dibulatkan 2 desimal) HANYA untuk ditampilkan di field Harga / Unit.
+    const harga = perLiterVal / multiplier;
+    document.getElementById('f_harga').value = formatHargaID(harga);
+    currentHargaDasar = harga; // simpan versi presisi penuh sebagai sumber kebenaran
+
+    // Baris kalkulasi lain dihitung LANGSUNG dari angka yang diketik user (perLiterVal),
+    // bukan dari Harga/Unit yang sudah dibulatkan — supaya Total selalu presisi & sama
+    // persis dengan qty × Harga Total / Liter yang diketik, tanpa selisih pembulatan.
+    const jumlah1 = harga * qty; // pakai harga presisi penuh (belum dibulatkan) di sini
+    const jumlahPbbkb = pbbkbOn ? jumlah1 * (pbbkbPersen/100) : 0;
+    const jumlah2 = jumlah1 * (ppnPersen/100);
+    const total = qty * perLiterVal; // = qty x harga total per liter yang diketik, exact
+
+    document.getElementById('calcJumlah1').textContent = formatRupiah2(jumlah1);
+    document.getElementById('calcPbbkb').textContent = formatRupiah2(jumlahPbbkb);
+    document.getElementById('calcPpn').textContent = formatRupiah2(jumlah2);
+    const totalInput = document.getElementById('calcTotalInput');
+    if(document.activeElement !== totalInput){
+      totalInput.value = formatRupiah2(total);
+    }
+  }
+
+  // Field Total Tagihan diisi manual -> hitung mundur Harga / Unit-nya
+  function onTotalInputChange(){
+    const input = document.getElementById('calcTotalInput');
+    const totalVal = parseNum(input.value);
+    if(!totalVal){ calcPreview(); return; }
+
+    const qty = parseNum(document.getElementById('f_qty').value);
+    const ppnPersen = parsePercent(document.getElementById('f_ppn').value);
+    const pbbkbOn = document.getElementById('f_pbbkbon').checked;
+    const pbbkbPersen = pbbkbOn ? parsePercent(document.getElementById('f_pbbkb').value) : 0;
+    const multiplier = 1 + (pbbkbPersen/100) + (ppnPersen/100);
+
+    if(qty <= 0){
+      showToast('Isi Qty dulu sebelum isi Total Tagihan, biar Harga / Unit bisa dihitung mundur', true);
+      calcPreview();
+      return;
+    }
+    if(multiplier <= 0){
+      showToast('PPN/PBBKB tidak valid, cek dulu isiannya', true);
+      calcPreview();
+      return;
+    }
+
+    // Harga dasar (dibulatkan 2 desimal) HANYA untuk ditampilkan di field Harga / Unit.
+    const harga = totalVal / (qty * multiplier);
+    document.getElementById('f_harga').value = formatHargaID(harga);
+    currentHargaDasar = harga; // simpan versi presisi penuh sebagai sumber kebenaran
+
+    // Baris kalkulasi lain dihitung dari harga presisi penuh & totalVal yang diketik
+    // langsung, supaya Total Tagihan tetap persis sama dengan yang diketik user.
+    const jumlah1 = harga * qty;
+    const jumlahPbbkb = pbbkbOn ? jumlah1 * (pbbkbPersen/100) : 0;
+    const jumlah2 = jumlah1 * (ppnPersen/100);
+    const perLiter = qty > 0 ? (totalVal / qty) : 0;
+
+    document.getElementById('calcJumlah1').textContent = formatRupiah2(jumlah1);
+    document.getElementById('calcPbbkb').textContent = formatRupiah2(jumlahPbbkb);
+    document.getElementById('calcPpn').textContent = formatRupiah2(jumlah2);
+    const perLiterInput = document.getElementById('calcPerLiterInput');
+    if(document.activeElement !== perLiterInput){
+      perLiterInput.value = formatRupiah2(perLiter);
+    }
+  }
+
+  function calcPoPreview(){
+    const qty = parseNum(document.getElementById('f_poQty').value);
+    const harga = parseNum(document.getElementById('f_poHarga').value);
+    const ppnPersen = parsePercent(document.getElementById('f_poPpn').value);
+    const ppnPerLiter = harga * (ppnPersen/100);
+    const perLiter = harga + ppnPerLiter;
+    const total = qty * perLiter;
+    document.getElementById('poCalcHarga').textContent = formatRupiah2(harga);
+    document.getElementById('poCalcPpn').textContent = formatRupiah2(ppnPerLiter);
+    document.getElementById('poCalcTotal').textContent = formatRupiah2(total);
+    const perLiterInput = document.getElementById('poCalcPerLiterInput');
+    // Jangan timpa field Total per Liter kalau lagi diketik user (biar gak lompat-lompat)
+    if(document.activeElement !== perLiterInput){
+      perLiterInput.value = formatRupiah2(perLiter);
+    }
+  }
+
+  // User lagi ngetik di field Total per Liter (PO) — tunggu selesai (blur/Enter)
+  function onPoPerLiterInputTyping(){}
+
+  // Field Total per Liter (all-in, sudah termasuk PPN PO) diisi manual
+  // -> hitung mundur Harga Beli / Unit dari Supplier
+  function onPoPerLiterInputChange(){
+    const input = document.getElementById('poCalcPerLiterInput');
+    const perLiterVal = parseNum(input.value);
+    if(!perLiterVal){ calcPoPreview(); return; }
+
+    const qty = parseNum(document.getElementById('f_poQty').value);
+    const ppnPersen = parsePercent(document.getElementById('f_poPpn').value);
+    const multiplier = 1 + (ppnPersen/100);
+
+    if(multiplier <= 0){
+      showToast('PPN PO tidak valid, cek dulu isiannya', true);
+      calcPoPreview();
+      return;
+    }
+
+    // Harga dasar (dibulatkan 2 desimal) HANYA untuk ditampilkan di field Harga Beli/Unit.
+    const harga = perLiterVal / multiplier;
+    document.getElementById('f_poHarga').value = formatHargaID(harga);
+
+    // Baris lain dihitung langsung dari angka yang diketik (perLiterVal), bukan dari
+    // harga yang sudah dibulatkan, supaya Total Jumlah PO selalu presisi.
+    const ppnPerLiter = harga * (ppnPersen/100);
+    const total = qty * perLiterVal; // = qty x total per liter yang diketik, exact
+
+    document.getElementById('poCalcHarga').textContent = formatRupiah2(harga);
+    document.getElementById('poCalcPpn').textContent = formatRupiah2(ppnPerLiter);
+    document.getElementById('poCalcTotal').textContent = formatRupiah2(total);
+  }
+
+  async function saveRecord(){
+    const noUrut = document.getElementById('f_noUrut').value.trim();
+    const bulanIdx = parseInt(document.getElementById('f_bulanIdx').value, 10);
+    const tahun = document.getElementById('f_tahun').value.trim();
+    if(!noUrut || !tahun){ showToast('Nomor Urut dan Tahun wajib diisi', true); return; }
+
+    const inv = computeInvNo(noUrut, bulanIdx, tahun);
+    const splitOn = document.getElementById('f_splitOn').checked;
+    const parts = currentPartsWithDoNo();
+    // Catatan: sengaja TIDAK memblokir simpan walau ada bagian DO yang belum
+    // lengkap (qty/plat/driver kosong) atau walau data invoice-nya sendiri
+    // belum diisi sama sekali. Ini supaya data DO dan data Invoice bisa
+    // diinput terpisah/menyusul, gak harus saling nunggu lengkap dulu.
+
+    const dosj = computeDosjFromParts(parts);
+    const qtyTotal = splitOn
+      ? parts.reduce((s,p) => s + parseNum(p.qty), 0).toString()
+      : document.getElementById('f_qty').value.trim();
+
+    const id = document.getElementById('f_id').value || ('rec_' + Date.now());
+    const record = {
+      id, inv,
+      noUrut, bulanIdx, tahun,
+      tgl: document.getElementById('f_tgl').value.trim(),
+      faktur: document.getElementById('f_faktur').value.trim(),
+      jatuhtempo: resolvedJatuhTempo(),
+      kepada: resolvedKepada(),
+      po: document.getElementById('f_po').value.trim(),
+      tglpo: document.getElementById('f_tglpo').value.trim(),
+      tglkirim: document.getElementById('f_tglkirim').value.trim(),
+      produk: document.getElementById('f_produk').value.trim(),
+      deskripsi: document.getElementById('f_deskripsi').value.trim(),
+      qty: qtyTotal,
+      harga: document.getElementById('f_harga').value.trim(),
+      ppn: document.getElementById('f_ppn').value.trim(),
+      pbbkb: document.getElementById('f_pbbkb').value.trim(),
+      pbbkbon: document.getElementById('f_pbbkbon').checked,
+      poSupplier: document.getElementById('f_poSupplier').value.trim(),
+      lambung: document.getElementById('f_lambung').value.trim(),
+      tujuan: document.getElementById('f_tujuan').value.trim(),
+      segel: document.getElementById('f_segel').value.trim(),
+      poNo: computePoNo(noUrut, bulanIdx, tahun),
+      poKepada: resolvedPoKepada(),
+      poTglDokumen: document.getElementById('f_poTglDokumen').value.trim(),
+      poFuelRequest: document.getElementById('f_poFuelRequest').value.trim(),
+      poTermin: resolvedPoTermin(),
+      poToleransi: resolvedToleransi(),
+      poMetodeKirim: document.getElementById('f_poMetodeKirim').value,
+      poProduk: document.getElementById('f_poProduk').value.trim(),
+      poQty: document.getElementById('f_poQty').value.trim(),
+      poHarga: document.getElementById('f_poHarga').value.trim(),
+      poPpn: document.getElementById('f_poPpn').value.trim(),
+      splitOn,
+      doPartsJson: JSON.stringify(parts),
+      doBase: computeDoBase(noUrut, bulanIdx, tahun),
+      dosj,
+      status: document.getElementById('f_status').value,
+      poStatus: document.getElementById('f_poStatus').value,
+      catatan: document.getElementById('f_catatan').value.trim()
+    };
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true; btn.textContent = 'Menyimpan...';
+    try{
+      await apiSave(record, (attempt, total) => {
+        btn.textContent = 'Menyimpan... (percobaan ' + (attempt + 1) + '/' + total + ')';
+      });
+      closeModal();
+      showToast('Invoice & DO tersimpan ke Google Sheets');
+      await fetchRecords(true);
+    }catch(err){
+      showToast('Gagal menyimpan setelah beberapa kali percobaan: ' + err.message, true);
+    }finally{
+      btn.disabled = false; btn.textContent = 'Simpan ke Pembukuan';
+    }
+  }
+
+  async function deleteRecord(id){
+    if(!confirm('Hapus invoice ini dari pembukuan?')) return;
+    try{
+      await apiDelete(id);
+      showToast('Invoice dihapus');
+      await fetchRecords(true);
+    }catch(err){
+      showToast('Gagal menghapus: ' + err.message, true);
+    }
+  }
+
+  async function duplicateRecord(id){
+    const orig = records.find(r => r.id === id);
+    if(!orig) return;
+    const copy = Object.assign({}, orig, {id: 'rec_' + Date.now(), inv: orig.inv + ' (copy)'});
+    try{
+      await apiSave(copy);
+      showToast('Invoice diduplikasi');
+      await fetchRecords(true);
+    }catch(err){
+      showToast('Gagal duplikasi: ' + err.message, true);
+    }
+  }
+
+  async function toggleStatus(id){
+    const r = records.find(x => x.id === id);
+    if(!r) return;
+    const updated = Object.assign({}, r, {status: r.status === 'lunas' ? 'belum' : 'lunas'});
+    try{
+      await apiSave(updated);
+      await fetchRecords(true);
+    }catch(err){
+      showToast('Gagal update status: ' + err.message, true);
+    }
+  }
+
+  // ---- Buka di generator ----
+  function openInGenerator(id, genKey){
+    const r = records.find(x => x.id === id);
+    const gen = GENERATORS.find(g => g.key === genKey);
+    if(!r || !gen) return;
+    const params = gen.params(r);
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k,v]) => { if(v !== undefined && v !== null) qs.set(k, v); });
+    window.open(gen.file + '?' + qs.toString(), '_blank');
+    closeAllDropdowns();
+  }
+
+  function openDoGenerator(id, partIdx){
+    const r = records.find(x => x.id === id);
+    if(!r) return;
+    const parts = getParts(r);
+    const part = parts[partIdx];
+    if(!part) return;
+    const params = doPartParams(r, part);
+    // [UPDATE QR] Kalau record ini sudah punya verifyToken (dikasih server
+    // saat disimpan), teruskan URL verifikasi siap-pakai ke generator, biar
+    // generator tinggal render QR-nya tanpa perlu tahu apa-apa soal
+    // CloudSync/Apps Script. Record lama yang belum sempat ke-generate
+    // token-nya (sebelum fitur ini ada) otomatis fallback ke tanda tangan
+    // statis seperti biasa di sisi generator.
+    if(r.verifyToken){
+      params.verifyUrl = CONFIG.url + '?token=' + encodeURIComponent(r.verifyToken);
+    }
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k,v]) => { if(v !== undefined && v !== null) qs.set(k, v); });
+    window.open('DO_Generator_GNM.html?' + qs.toString(), '_blank');
+    closeAllDropdowns();
+  }
+
+  function closeAllDropdowns(){
+    document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+  }
+  function toggleDropdown(ev, id){
+    const el = document.getElementById('dd_' + id);
+    const wasOpen = el.classList.contains('open');
+    closeAllDropdowns();
+    if(!wasOpen){
+      const btn = ev.currentTarget;
+      const rect = btn.getBoundingClientRect();
+      el.classList.add('open'); // supaya offsetWidth kebaca benar
+      const menuWidth = el.offsetWidth || 190;
+      let left = rect.right - menuWidth;
+      if(left < 8) left = 8;
+      let top = rect.bottom + 4;
+      if(top + el.offsetHeight > window.innerHeight - 8){
+        top = rect.top - el.offsetHeight - 4; // buka ke atas kalau kepotong bawah
+      }
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+    }
+  }
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('.dropdown')) closeAllDropdowns();
+  });
+  document.addEventListener('scroll', () => closeAllDropdowns(), true);
+  window.addEventListener('resize', () => closeAllDropdowns());
+
+  // ---- Render ----
+  function statusInfo(r){
+    if(r.status === 'lunas') return {cls:'status-lunas', label:'Lunas'};
+    return {cls:'status-belum', label:'Belum Lunas'};
+  }
+
+  // Urutan tabel: dari transaksi paling BARU ke paling LAMA, berdasarkan
+  // Tahun -> Bulan -> Nomor Urut invoice (bukan berdasarkan kapan terakhir diedit).
+  function periodSortKey(r){
+    const tahun = parseInt(r.tahun, 10) || 0;
+    const bulan = parseInt(r.bulanIdx, 10) || 0;
+    const urut = parseInt(r.noUrut, 10) || 0;
+    return tahun * 1000000 + bulan * 10000 + urut;
+  }
+
+  function renderTable(){
+    const q = document.getElementById('searchBox').value.trim().toLowerCase();
+    // Kalau lagi nyari (search box terisi), cari di SEMUA transaksi, bukan cuma periode yg lagi dipilih,
+    // supaya invoice bulan/tahun lain tetap ketemu. Kalau search kosong, ikuti filter periode di atas tabel.
+    const base = q ? records : getFilteredByPeriod(records);
+    const filtered = base.filter(r => {
+      if(!q) return true;
+      return (r.inv||'').toLowerCase().includes(q)
+        || (r.kepada||'').toLowerCase().includes(q)
+        || (r.po||'').toLowerCase().includes(q);
+    }).sort((a,b) => {
+      const diff = periodSortKey(b) - periodSortKey(a);
+      if(diff !== 0) return diff;
+      return (b.updatedAt||'').localeCompare(a.updatedAt||'');
+    });
+
+    const tbody = document.getElementById('tableBody');
+    const empty = document.getElementById('emptyState');
+    const countEl = document.getElementById('periodCount');
+    if(countEl){
+      countEl.textContent = q
+        ? `${filtered.length} hasil pencarian (dari semua periode)`
+        : `Menampilkan ${filtered.length} dari ${records.length} total transaksi`;
+    }
+
+    if(filtered.length === 0){
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      const bigEl = empty.querySelector('.big');
+      if(bigEl){
+        bigEl.textContent = q ? 'Tidak ada hasil' : ((monthFilter === 'all' && yearFilter === 'all') ? 'Belum ada data invoice' : 'Belum ada transaksi di periode ini');
+      }
+    } else {
+      empty.style.display = 'none';
+      tbody.innerHTML = filtered.map(r => {
+        const c = computeTotal(r);
+        const st = statusInfo(r);
+        const parts = getParts(r);
+        const invButtons = GENERATORS.filter(g => g.key !== 'gnm_po').map(g =>
+          `<button onclick="openInGenerator('${r.id}','${g.key}')">${g.label}</button>`
+        ).join('');
+        const poGen = GENERATORS.find(g => g.key === 'gnm_po');
+        const poButton = poGen ? `<button onclick="openInGenerator('${r.id}','${poGen.key}')">${poGen.label}</button>` : '';
+        const doButtons = parts.map((p, i) =>
+          `<button onclick="openDoGenerator('${r.id}',${i})">Surat Jalan${p.label ? ' - Bagian ' + p.label : ''}</button>`
+        ).join('');
+        return `
+        <tr class="${r.status === 'lunas' ? 'row-lunas' : ''}">
+          <td><strong>${escapeHtml(r.inv)}</strong></td>
+          <td>${escapeHtml(r.tgl)}</td>
+          <td>${escapeHtml(r.kepada)}</td>
+          <td class="muted">${escapeHtml(r.po)}</td>
+          <td class="muted">${escapeHtml(r.dosj)}</td>
+          <td>${escapeHtml(r.produk)}</td>
+          <td class="num">${escapeHtml(r.qty)}</td>
+          <td class="num"><strong>${formatRupiah(c.total)}</strong></td>
+          <td class="muted">${escapeHtml(r.jatuhtempo)}</td>
+          <td>${renderStatusSelect(r,'status')}</td>
+          <td>${renderStatusSelect(r,'poStatus')}</td>
+          <td>${renderDocCell(r,'docInvSigned')}</td>
+          <td>${renderDocCell(r,'docInvFinal')}</td>
+          <td>${renderDocCell(r,'docPoSupplier')}</td>
+          <td>${renderDocCell(r,'docDo')}</td>
+          <td>${renderDocCell(r,'docBuktiPayment')}</td>
+          <td>
+            <div class="actions-cell">
+              <div class="dropdown">
+                <button class="btn btn-gold btn-sm" onclick="toggleDropdown(event,'${r.id}')">Buka di Generator ▾</button>
+                <div class="dropdown-menu gen-dropdown-menu" id="dd_${r.id}">
+                  <div class="menu-label">Invoice</div>
+                  ${invButtons}
+                  <div class="menu-label">Surat Jalan (DO)</div>
+                  ${doButtons || '<div class="menu-label" style="text-transform:none;letter-spacing:0;padding-top:0;">Belum ada data DO</div>'}
+                  <div class="menu-label">Purchase Order</div>
+                  ${poButton}
+                </div>
+              </div>
+              <button class="btn btn-ghost btn-icon" onclick='openModal(records.find(x=>x.id==="${r.id}"))' title="Edit">✎</button>
+              <button class="btn btn-ghost btn-icon" onclick="duplicateRecord('${r.id}')" title="Duplikasi">⧉</button>
+              <button class="btn btn-ghost btn-icon" onclick="deleteRecord('${r.id}')" title="Hapus">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+    renderSummary();
+  }
+
+  function renderSummary(){
+    let total = 0, lunas = 0, belum = 0;
+    records.forEach(r => {
+      const c = computeTotal(r);
+      total += c.total;
+      if(r.status === 'lunas') lunas += c.total; else belum += c.total;
+    });
+    document.getElementById('sumCount').textContent = records.length;
+    document.getElementById('sumTotal').textContent = formatRupiah(total);
+    document.getElementById('sumLunas').textContent = formatRupiah(lunas);
+    document.getElementById('sumBelum').textContent = formatRupiah(belum);
+  }
+
+  function escapeHtml(str){
+    if(str === undefined || str === null) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // ---- Status dropdown langsung di tabel (tanpa buka Edit) ----
+  // INV Status = Lunas/Belum Lunas (pembayaran dari customer)
+  // PO Status  = Delivered/Non-Delivered (status pengiriman dari supplier)
+  const STATUS_FIELD_OPTIONS = {
+    status: {
+      values: ['belum','lunas'],
+      labels: {belum:'Belum Lunas', lunas:'Lunas'},
+      cls: {belum:'status-select-belum', lunas:'status-select-lunas'},
+      fallback: 'belum'
+    },
+    poStatus: {
+      values: ['non-delivered','delivered'],
+      labels: {'non-delivered':'Non-Delivered', 'delivered':'Delivered'},
+      cls: {'non-delivered':'status-select-belum', 'delivered':'status-select-lunas'},
+      fallback: 'non-delivered'
+    }
+  };
+
+  function renderStatusSelect(record, field){
+    const cfg = STATUS_FIELD_OPTIONS[field];
+    const val = cfg.values.includes(record[field]) ? record[field] : cfg.fallback;
+    const cls = cfg.cls[val];
+    const options = cfg.values.map(v =>
+      `<option value="${v}" ${v===val ? 'selected' : ''}>${cfg.labels[v]}</option>`
+    ).join('');
+    return `<select class="status-select ${cls}" onchange="updateStatusField('${record.id}','${field}', this.value, this)" onclick="event.stopPropagation()">
+        ${options}
+      </select>`;
+  }
+
+  async function updateStatusField(recordId, field, value, selectEl){
+    const record = records.find(r => r.id === recordId);
+    if(!record){ showToast('Baris tidak ditemukan, coba refresh dulu', true); return; }
+    const cfg = STATUS_FIELD_OPTIONS[field];
+    const prevValue = record[field];
+    record[field] = value;
+    if(selectEl){
+      selectEl.className = 'status-select ' + cfg.cls[value];
+    }
+    rowActionBusy = true;
+    setSyncStatus('syncing', 'Menyimpan status...');
+    try{
+      await apiSave(record);
+      setSyncStatus('ok', 'Status tersimpan');
+      renderSummary();
+    }catch(err){
+      record[field] = prevValue;
+      renderTable();
+      setSyncStatus('error', 'Gagal sync');
+      showToast('Gagal menyimpan status: ' + err.message, true);
+    }finally{
+      rowActionBusy = false;
+    }
+  }
+
+
+  // Dokumen kecil (di bawah batas aman sel Google Sheets) disimpan langsung sebagai
+  // base64 di dalam record itu sendiri. Dokumen yang lebih besar (kebanyakan PDF hasil
+  // scan) tidak muat di satu sel Sheet (limit ~50.000 karakter/sel), jadi untuk itu kita
+  // simpan link saja (mis. link Google Drive yang sudah di-share).
+  const MAX_INLINE_DOC_BYTES = 35000; // ~35KB berkas asli -> aman di bawah limit sel Sheets setelah di-base64
+  let pendingDocTarget = null;
+  let rowActionBusy = false;
+
+  function truncateMiddle(str, maxLen){
+    if(!str || str.length <= maxLen) return str;
+    const keep = Math.floor((maxLen - 1) / 2);
+    return str.slice(0, keep) + '…' + str.slice(str.length - keep);
+  }
+
+  function parseDocField(raw){
+    if(!raw) return null;
+    try{
+      const doc = JSON.parse(raw);
+      if(doc && (doc.data || doc.url)) return doc;
+      return null;
+    }catch(e){ return null; }
+  }
+
+  function renderDocCell(record, docKey){
+    const doc = parseDocField(record[docKey]);
+    if(doc){
+      const label = doc.name || (doc.type === 'link' ? doc.url : 'Dokumen');
+      const cls = doc.type === 'link' ? 'doc-view-btn is-link' : 'doc-view-btn';
+      const icon = doc.type === 'link' ? '🔗' : '📄';
+      return `
+        <div class="doc-cell">
+          <button class="${cls}" onclick="viewDoc('${record.id}','${docKey}')" title="${escapeAttr(label)}">${icon} ${escapeHtml(truncateMiddle(label,16))}</button>
+          <button class="doc-remove-btn" onclick="removeDoc('${record.id}','${docKey}')" title="Hapus dokumen">×</button>
+        </div>`;
+    }
+    return `
+      <div class="doc-upload-group">
+        <button class="doc-upload-btn" onclick="openDocPicker('${record.id}','${docKey}')" title="Upload file PDF (maks ${Math.round(MAX_INLINE_DOC_BYTES/1000)}KB)">＋ Upload</button>
+        <button class="doc-link-btn" onclick="promptDocLink('${record.id}','${docKey}')" title="Tempel link dokumen (mis. Google Drive)">🔗</button>
+      </div>`;
+  }
+
+  function openDocPicker(recordId, docKey){
+    pendingDocTarget = {recordId, docKey};
+    const input = document.getElementById('docFileInput');
+    input.value = '';
+    input.click();
+  }
+
+  async function handleDocFileChange(event){
+    const file = event.target.files && event.target.files[0];
+    const target = pendingDocTarget;
+    pendingDocTarget = null;
+    if(!file || !target) return;
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if(!isPdf){
+      showToast('File harus berformat PDF', true);
+      return;
+    }
+
+    if(file.size > MAX_INLINE_DOC_BYTES){
+      const kb = Math.round(file.size/1024);
+      const maxKb = Math.round(MAX_INLINE_DOC_BYTES/1024);
+      const useLink = confirm(
+        `File "${file.name}" berukuran ${kb}KB, melebihi batas ${maxKb}KB yang bisa disimpan langsung di Google Sheets ` +
+        `(satu sel maksimal ~50.000 karakter).\n\n` +
+        `Upload dulu file ini ke Google Drive (atau penyimpanan lain), lalu klik OK untuk tempelkan link-nya di sini. ` +
+        `Klik Cancel untuk batal.`
+      );
+      if(useLink){
+        promptDocLink(target.recordId, target.docKey);
+      }
+      return;
+    }
+
+    try{
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const base64 = String(dataUrl).split(',')[1] || '';
+      const doc = {type:'data', name:file.name, mime:file.type || 'application/pdf', size:file.size, data:base64};
+      await saveDocField(target.recordId, target.docKey, JSON.stringify(doc));
+    }catch(err){
+      showToast('Gagal membaca file: ' + err.message, true);
+    }
+  }
+
+  function promptDocLink(recordId, docKey){
+    const existing = parseDocField(records.find(r => r.id === recordId)?.[docKey] || '');
+    const url = prompt('Tempel link dokumen (mis. link share Google Drive):', existing && existing.type === 'link' ? existing.url : '');
+    if(url === null) return;
+    const trimmed = url.trim();
+    if(!trimmed){ showToast('Link kosong, dibatalkan', true); return; }
+    const label = prompt('Nama singkat dokumen ini (opsional):', existing && existing.name ? existing.name : '') || 'Link Dokumen';
+    const doc = {type:'link', url:trimmed, name:label.trim() || 'Link Dokumen'};
+    saveDocField(recordId, docKey, JSON.stringify(doc));
+  }
+
+  function viewDoc(recordId, docKey){
+    const record = records.find(r => r.id === recordId);
+    const doc = parseDocField(record ? record[docKey] : null);
+    if(!doc) return;
+    if(doc.type === 'link'){
+      window.open(doc.url, '_blank');
+    } else if(doc.type === 'data'){
+      const win = window.open('', '_blank');
+      if(win){
+        win.location.href = `data:${doc.mime || 'application/pdf'};base64,${doc.data}`;
+      }
+    }
+  }
+
+  async function removeDoc(recordId, docKey){
+    const record = records.find(r => r.id === recordId);
+    const doc = parseDocField(record ? record[docKey] : null);
+    const label = doc ? (doc.name || 'dokumen ini') : 'dokumen ini';
+    if(!confirm(`Hapus ${label} dari baris ini?`)) return;
+    await saveDocField(recordId, docKey, '');
+  }
+
+  async function saveDocField(recordId, docKey, value){
+    const record = records.find(r => r.id === recordId);
+    if(!record){ showToast('Baris tidak ditemukan, coba refresh dulu', true); return; }
+    const prevValue = record[docKey];
+    record[docKey] = value;
+    renderTable();
+    rowActionBusy = true;
+    setSyncStatus('syncing', 'Menyimpan dokumen...');
+    try{
+      await apiSave(record);
+      setSyncStatus('ok', 'Dokumen tersimpan');
+      showToast(value ? 'Dokumen tersimpan' : 'Dokumen dihapus');
+    }catch(err){
+      record[docKey] = prevValue;
+      renderTable();
+      setSyncStatus('error', 'Gagal sync');
+      showToast('Gagal menyimpan dokumen: ' + err.message, true);
+    }finally{
+      rowActionBusy = false;
+    }
+  }
+
+  // ---- Export CSV (buat Excel, sifatnya cuma backup lokal) ----
+  const CSV_FIELDS = ['inv','noUrut','bulanIdx','tahun','tgl','faktur','jatuhtempo','kepada','po','tglpo','dosj','doBase','tglkirim','produk','deskripsi','qty','harga','ppn','pbbkb','pbbkbon','poSupplier','lambung','tujuan','segel','poNo','poKepada','poTglDokumen','poFuelRequest','poToleransi','poMetodeKirim','poTermin','poProduk','poQty','poHarga','poPpn','poStatus','docInvSigned','docInvFinal','docPoSupplier','docDo','docBuktiPayment','splitOn','doPartsJson','status','catatan'];
+  function exportCsv(){
+    if(records.length === 0){ showToast('Belum ada data untuk di-export'); return; }
+    const header = CSV_FIELDS.join(',');
+    const rows = records.map(r => CSV_FIELDS.map(f => {
+      let v = r[f];
+      if(f === 'pbbkbon' || f === 'splitOn') v = v ? '1' : '0';
+      v = (v === undefined || v === null) ? '' : String(v);
+      if(v.includes(',') || v.includes('"') || v.includes('\n')) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    }).join(',')).join('\n');
+    const csv = '\ufeff' + header + '\n' + rows;
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Pembukuan_Invoice_GNM_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export CSV berhasil');
+  }
+
+  // ---- Init & polling ----
+  function init(){
+    if(!isConfigured()){
+      document.getElementById('mainWrap').style.display = 'none';
+      document.getElementById('setupWrap').style.display = 'block';
+      setSyncStatus('error', 'Belum tersambung');
+      return;
+    }
+    document.getElementById('setupWrap').style.display = 'none';
+    document.getElementById('mainWrap').style.display = 'block';
+    fetchRecords();
+
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(() => fetchRecords(), 15000);
+
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'visible') fetchRecords();
+    });
+  }
+
+  loadConfig();
+  init();
+
+  // [PWA] Daftarkan service worker (app-shell caching + offline support).
+  // Dibungkus try/catch & feature-check karena beberapa WebView lama belum
+  // dukung Service Worker API -- app tetap jalan normal (online) kalau ini
+  // gagal, cuma nggak dapat manfaat offline-nya.
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.warn('Service worker gagal didaftarkan (PWA offline support tidak aktif):', err);
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
